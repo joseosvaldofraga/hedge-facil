@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
-
 class ContasConfig(AppConfig):
-    name = 'contas'
+    name = "apps.contas"
+    default_auto_field = "django.db.models.BigAutoField"

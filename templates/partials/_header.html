@@ -1,0 +1,6 @@
+<header class="bg-green-800 text-white px-5 py-3 flex justify-between items-center">
+  <span class="font-display font-bold text-lg">HedgeFácil</span>
+  {% if user.is_authenticated %}
+    <a href="/" class="text-sm text-green-200">Sair</a>
+  {% endif %}
+</header>
