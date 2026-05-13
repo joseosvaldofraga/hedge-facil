@@ -1,9 +1,11 @@
+import unittest
 from decimal import Decimal
 from django.test import TestCase
 from apps.contas.models import Produtor
 from apps.safra.models import Safra
 from apps.vendas.models import Venda
 from apps.posicao.services import calcular_posicao
+from apps.hedge.services import simular_cenarios
 
 
 class CalcularPosicaoTestCase(TestCase):
@@ -84,12 +86,8 @@ class CalcularPosicaoTestCase(TestCase):
         self.assertEqual(posicao.sacas_totais, Decimal("1000"))
 
 
-import unittest
-
-
 class SimularCenariosTestCase(unittest.TestCase):
     def test_retorna_3_cenarios_por_padrao(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -97,7 +95,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertEqual(len(cenarios), 3)
 
     def test_cenario_estavel_variacao_zero_impacto_zero(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -106,7 +103,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertEqual(estavel.impacto_vs_atual, Decimal("0.00"))
 
     def test_cenario_queda_20_preco_projetado_correto(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -115,7 +111,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertEqual(queda.preco_projetado, Decimal("104.00"))
 
     def test_cenario_queda_20_receita_correta(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -124,7 +119,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertEqual(queda.receita_no_saldo, Decimal("72800.00"))
 
     def test_cenario_queda_impacto_negativo(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -133,7 +127,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertLess(queda.impacto_vs_atual, Decimal("0"))
 
     def test_cenario_alta_15_preco_projetado_correto(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -142,7 +135,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertEqual(alta.preco_projetado, Decimal("149.50"))
 
     def test_cenario_alta_15_receita_correta(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -151,7 +143,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertEqual(alta.receita_no_saldo, Decimal("104650.00"))
 
     def test_cenario_alta_impacto_positivo(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -160,7 +151,6 @@ class SimularCenariosTestCase(unittest.TestCase):
         self.assertGreater(alta.impacto_vs_atual, Decimal("0"))
 
     def test_todos_valores_sao_decimal(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
@@ -171,7 +161,6 @@ class SimularCenariosTestCase(unittest.TestCase):
             self.assertIsInstance(c.impacto_vs_atual, Decimal)
 
     def test_variacoes_customizadas(self):
-        from apps.hedge.services import simular_cenarios
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("500"),
             preco_atual=Decimal("100"),

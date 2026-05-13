@@ -53,3 +53,13 @@ class HedgeViewsTestCase(TestCase):
         self.client.logout()
         response = self.client.get(reverse("hedge:proteger", args=[self.safra.id]))
         self.assertEqual(response.status_code, 302)
+
+    def test_cenarios_preco_invalido_retorna_200_com_fallback(self):
+        url = reverse("hedge:cenarios", args=[self.safra.id]) + "?preco_atual=abc"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_cenarios_preco_vazio_retorna_200_com_fallback(self):
+        url = reverse("hedge:cenarios", args=[self.safra.id]) + "?preco_atual="
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
