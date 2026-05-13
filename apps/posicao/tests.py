@@ -1,3 +1,67 @@
+from decimal import Decimal
 from django.test import TestCase
+from django.urls import reverse
+from apps.contas.models import Produtor
+from apps.safra.models import Safra
 
-# Create your tests here.
+
+class PainelViewTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="ze", email="ze@test.com", password="senha123"
+        )
+        self.client.force_login(self.produtor)
+
+    def test_painel_requer_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_painel_sem_safra_redireciona_para_nova_safra(self):
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertRedirects(response, reverse("safra:nova"))
+
+    def test_painel_com_safra_retorna_200(self):
+        Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_painel_contexto_tem_posicao(self):
+        Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertIn("posicao", response.context)
+
+    def test_painel_contexto_tem_safra(self):
+        safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertEqual(response.context["safra"], safra)
+
+    def test_painel_nao_mostra_safra_de_outro_produtor(self):
+        outro = Produtor.objects.create_user(username="outro", email="outro@test.com")
+        Safra.objects.create(
+            produtor=outro,
+            cultura="milho",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("500"),
+            custo_por_saca=Decimal("60"),
+        )
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertRedirects(response, reverse("safra:nova"))

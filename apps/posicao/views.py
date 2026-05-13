@@ -1,7 +1,13 @@
-from django.http import HttpResponse
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from apps.safra.models import Safra
+from .services import calcular_posicao
 
 
 @login_required
 def painel(request):
-    return HttpResponse("painel em construção")
+    safra = Safra.objects.filter(produtor=request.user, ativa=True).first()
+    if not safra:
+        return redirect("safra:nova")
+    posicao = calcular_posicao(safra)
+    return render(request, "posicao/painel.html", {"posicao": posicao, "safra": safra})

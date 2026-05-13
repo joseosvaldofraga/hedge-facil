@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="mb-6">
+  <p class="text-sm text-slate-500">{{ safra }}</p>
+  <h1 class="font-display text-4xl font-bold text-green-800">
+    R$ {{ posicao.preco_medio_ponderado }}
+  </h1>
+  <p class="text-sm text-slate-600">preço médio ponderado</p>
+</div>
+
+<div class="bg-white rounded-xl p-4 mb-4 shadow-sm">
+  <div class="flex justify-between mb-2">
+    <span class="text-sm text-slate-600">Vendido</span>
+    <span class="font-semibold">{{ posicao.percentual_vendido }}%</span>
+  </div>
+  <div class="w-full bg-slate-200 rounded-full h-3">
+    <div class="bg-green-600 h-3 rounded-full"
+         style="width: {{ posicao.percentual_vendido }}%"></div>
+  </div>
+  <div class="flex justify-between mt-2 text-xs text-slate-500">
+    <span>{{ posicao.sacas_vendidas }} sc vendidas</span>
+    <span>{{ posicao.sacas_a_vender }} sc a vender</span>
+  </div>
+</div>
+
+<div class="grid grid-cols-2 gap-3 mb-4">
+  <div class="bg-white rounded-xl p-4 shadow-sm">
+    <p class="text-xs text-slate-500">Receita travada</p>
+    <p class="font-display text-xl font-bold text-green-700">R$ {{ posicao.receita_travada }}</p>
+  </div>
+  <div class="bg-white rounded-xl p-4 shadow-sm">
+    <p class="text-xs text-slate-500">Lucro parcial</p>
+    <p class="font-display text-xl font-bold {% if posicao.lucro_travado_parcial >= 0 %}text-green-700{% else %}text-red-600{% endif %}">
+      R$ {{ posicao.lucro_travado_parcial }}
+    </p>
+  </div>
+</div>
+
+<a href="{% url 'vendas:lista' safra.id %}"
+   class="block w-full bg-green-700 text-white text-center rounded-xl py-4 font-semibold min-h-[48px]">
+  Ver vendas
+</a>
+<a href="#"
+   class="block w-full border border-green-700 text-green-700 text-center rounded-xl py-4 font-semibold mt-3 min-h-[48px]">
+  Simular cenários
+</a>
+{% endblock %}
