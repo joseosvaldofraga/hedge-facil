@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<h1 class="font-display text-2xl font-bold text-green-800 mb-6">Nova Safra</h1>
+<form method="post" class="space-y-4">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit"
+          class="w-full bg-green-700 text-white rounded-lg py-4 font-semibold min-h-[48px]">
+    Salvar Safra
+  </button>
+</form>
+{% endblock %}

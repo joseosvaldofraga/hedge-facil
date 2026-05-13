@@ -1,3 +1,17 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .forms import SafraForm
 
-# Create your views here.
+
+@login_required
+def nova(request):
+    if request.method == "POST":
+        form = SafraForm(request.POST)
+        if form.is_valid():
+            safra = form.save(commit=False)
+            safra.produtor = request.user
+            safra.save()
+            return redirect("posicao:painel")
+    else:
+        form = SafraForm()
+    return render(request, "safra/nova.html", {"form": form})

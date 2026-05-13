@@ -1,5 +1,9 @@
+from decimal import Decimal
+
 from django.test import TestCase
+
 from apps.contas.models import Produtor
+from apps.safra.models import Safra
 
 
 class ProdutorModelTestCase(TestCase):
@@ -22,3 +26,45 @@ class ProdutorModelTestCase(TestCase):
     def test_produtor_str_retorna_username(self):
         p = Produtor(username="fazendeiro")
         self.assertEqual(str(p), "fazendeiro")
+
+
+class SafraModelTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(username="fazendeiro", email="f@test.com")
+
+    def test_custo_total_multiplica_producao_por_custo(self):
+        safra = Safra(
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        self.assertEqual(safra.custo_total, Decimal("80000"))
+
+    def test_custo_total_usa_decimal(self):
+        safra = Safra(
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80.50"),
+        )
+        self.assertIsInstance(safra.custo_total, Decimal)
+
+    def test_str_contem_cultura_e_ano(self):
+        safra = Safra(
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        safra.produtor = self.produtor
+        self.assertIn("Soja", str(safra))
+        self.assertIn("2025/26", str(safra))
+
+    def test_unique_produtor_cultura_ano(self):
+        from django.db import IntegrityError
+        Safra.objects.create(
+            produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
+        )
+        with self.assertRaises(IntegrityError):
+            Safra.objects.create(
+                produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+                producao_estimada_sacas=Decimal("500"), custo_por_saca=Decimal("90"),
+            )
