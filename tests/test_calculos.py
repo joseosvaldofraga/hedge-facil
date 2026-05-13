@@ -82,3 +82,99 @@ class CalcularPosicaoTestCase(TestCase):
     def test_sacas_totais_iguais_producao_estimada(self):
         posicao = calcular_posicao(self.safra)
         self.assertEqual(posicao.sacas_totais, Decimal("1000"))
+
+
+import unittest
+
+
+class SimularCenariosTestCase(unittest.TestCase):
+    def test_retorna_3_cenarios_por_padrao(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        self.assertEqual(len(cenarios), 3)
+
+    def test_cenario_estavel_variacao_zero_impacto_zero(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        estavel = next(c for c in cenarios if c.variacao_percentual == Decimal("0"))
+        self.assertEqual(estavel.impacto_vs_atual, Decimal("0.00"))
+
+    def test_cenario_queda_20_preco_projetado_correto(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        queda = next(c for c in cenarios if c.variacao_percentual == Decimal("-20"))
+        self.assertEqual(queda.preco_projetado, Decimal("104.00"))
+
+    def test_cenario_queda_20_receita_correta(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        queda = next(c for c in cenarios if c.variacao_percentual == Decimal("-20"))
+        self.assertEqual(queda.receita_no_saldo, Decimal("72800.00"))
+
+    def test_cenario_queda_impacto_negativo(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        queda = next(c for c in cenarios if c.variacao_percentual == Decimal("-20"))
+        self.assertLess(queda.impacto_vs_atual, Decimal("0"))
+
+    def test_cenario_alta_15_preco_projetado_correto(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        alta = next(c for c in cenarios if c.variacao_percentual == Decimal("15"))
+        self.assertEqual(alta.preco_projetado, Decimal("149.50"))
+
+    def test_cenario_alta_15_receita_correta(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        alta = next(c for c in cenarios if c.variacao_percentual == Decimal("15"))
+        self.assertEqual(alta.receita_no_saldo, Decimal("104650.00"))
+
+    def test_cenario_alta_impacto_positivo(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        alta = next(c for c in cenarios if c.variacao_percentual == Decimal("15"))
+        self.assertGreater(alta.impacto_vs_atual, Decimal("0"))
+
+    def test_todos_valores_sao_decimal(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("700"),
+            preco_atual=Decimal("130"),
+        )
+        for c in cenarios:
+            self.assertIsInstance(c.preco_projetado, Decimal)
+            self.assertIsInstance(c.receita_no_saldo, Decimal)
+            self.assertIsInstance(c.impacto_vs_atual, Decimal)
+
+    def test_variacoes_customizadas(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(
+            sacas_a_vender=Decimal("500"),
+            preco_atual=Decimal("100"),
+            variacoes=[Decimal("-10"), Decimal("10")],
+        )
+        self.assertEqual(len(cenarios), 2)
