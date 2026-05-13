@@ -27,3 +27,21 @@ def nova(request, safra_id):
     else:
         form = VendaForm()
     return render(request, "vendas/_form.html", {"form": form, "safra": safra})
+
+
+@login_required
+def editar(request, venda_id):
+    venda = get_object_or_404(Venda, id=venda_id, safra__produtor=request.user)
+    safra = venda.safra
+    if request.method == "POST":
+        form = VendaForm(request.POST, instance=venda)
+        if form.is_valid():
+            form.save()
+            if request.htmx:
+                return render(request, "vendas/_lista.html", {
+                    "vendas": safra.vendas.all(), "safra": safra,
+                })
+            return redirect("vendas:lista", safra_id=safra.id)
+    else:
+        form = VendaForm(instance=venda)
+    return render(request, "vendas/_form.html", {"form": form, "safra": safra})
