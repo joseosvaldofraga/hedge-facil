@@ -1,7 +1,7 @@
 <div id="venda-form">
-  <h2 class="font-display text-lg font-bold text-green-800 mb-4">Nova Venda</h2>
+  <h2 class="font-display text-lg font-bold text-green-800 mb-4">{{ form_title }}</h2>
   <form method="post"
-        hx-post="{% url 'vendas:nova' safra.id %}"
+        hx-post="{{ action_url }}"
         hx-target="#lista-vendas"
         hx-swap="outerHTML">
     {% csrf_token %}

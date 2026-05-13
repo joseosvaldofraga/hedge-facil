@@ -189,3 +189,29 @@ class VendaEditarTestCase(TestCase):
         response = self.client.post(url, {})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["form"].errors)
+
+    def test_editar_htmx_post_valido_retorna_fragmento(self):
+        url = reverse("vendas:editar", args=[self.venda.id])
+        response = self.client.post(url, {
+            "tipo": "balcao",
+            "contraparte": "Bunge",
+            "sacas": "300",
+            "preco_por_saca": "130.00",
+            "data_negociacao": "2025-03-01",
+        }, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "vendas/_lista.html")
+
+    def test_editar_post_404_para_venda_de_outro_produtor(self):
+        outro = Produtor.objects.create_user(
+            username="outro_edit_post", email="outro_edit_post@test.com", password="senha123"
+        )
+        self.client.force_login(outro)
+        url = reverse("vendas:editar", args=[self.venda.id])
+        self.assertEqual(self.client.post(url, {
+            "tipo": "balcao",
+            "contraparte": "Bunge",
+            "sacas": "300",
+            "preco_por_saca": "130.00",
+            "data_negociacao": "2025-03-01",
+        }).status_code, 404)

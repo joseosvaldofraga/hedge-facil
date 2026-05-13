@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from apps.safra.models import Safra
 from .models import Venda
 from .forms import VendaForm
@@ -26,7 +27,12 @@ def nova(request, safra_id):
             return redirect("posicao:painel")
     else:
         form = VendaForm()
-    return render(request, "vendas/_form.html", {"form": form, "safra": safra})
+    return render(request, "vendas/_form.html", {
+        "form": form,
+        "safra": safra,
+        "action_url": reverse("vendas:nova", args=[safra.id]),
+        "form_title": "Nova Venda",
+    })
 
 
 @login_required
@@ -44,4 +50,9 @@ def editar(request, venda_id):
             return redirect("vendas:lista", safra_id=safra.id)
     else:
         form = VendaForm(instance=venda)
-    return render(request, "vendas/_form.html", {"form": form, "safra": safra})
+    return render(request, "vendas/_form.html", {
+        "form": form,
+        "safra": safra,
+        "action_url": reverse("vendas:editar", args=[venda.id]),
+        "form_title": "Editar Venda",
+    })
