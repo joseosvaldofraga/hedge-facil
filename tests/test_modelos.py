@@ -4,6 +4,7 @@ from django.test import TestCase
 
 from apps.contas.models import Produtor
 from apps.safra.models import Safra
+from apps.vendas.models import Venda
 
 
 class ProdutorModelTestCase(TestCase):
@@ -68,3 +69,37 @@ class SafraModelTestCase(TestCase):
                 produtor=self.produtor, cultura="soja", ano_safra="2025/26",
                 producao_estimada_sacas=Decimal("500"), custo_por_saca=Decimal("90"),
             )
+
+
+class VendaModelTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(username="vend_test", email="vt@test.com")
+        self.safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+
+    def test_receita_multiplica_sacas_por_preco(self):
+        venda = Venda(sacas=Decimal("300"), preco_por_saca=Decimal("120"))
+        self.assertEqual(venda.receita, Decimal("36000"))
+
+    def test_receita_usa_decimal_nao_float(self):
+        venda = Venda(sacas=Decimal("300"), preco_por_saca=Decimal("120.50"))
+        self.assertIsInstance(venda.receita, Decimal)
+
+    def test_receita_com_valor_decimal_fracionado(self):
+        venda = Venda(sacas=Decimal("300"), preco_por_saca=Decimal("120.50"))
+        self.assertEqual(venda.receita, Decimal("36150.00"))
+
+    def test_str_contem_contraparte_e_sacas(self):
+        venda = Venda(
+            contraparte="Cargill",
+            sacas=Decimal("300"),
+            preco_por_saca=Decimal("120"),
+        )
+        resultado = str(venda)
+        self.assertIn("Cargill", resultado)
+        self.assertIn("300", resultado)
