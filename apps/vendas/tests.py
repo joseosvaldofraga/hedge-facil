@@ -73,3 +73,45 @@ class VendasViewsTestCase(TestCase):
         )
         response = self.client.get(reverse("vendas:lista", args=[self.safra.id]))
         self.assertNotContains(response, "Bunge")
+
+    def test_htmx_post_valido_retorna_fragmento(self):
+        data = {
+            "tipo": "balcao",
+            "contraparte": "Cargill",
+            "sacas": "300",
+            "preco_por_saca": "120.50",
+            "data_negociacao": "2025-03-01",
+        }
+        response = self.client.post(
+            reverse("vendas:nova", args=[self.safra.id]),
+            data,
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "vendas/_lista.html")
+
+    def test_htmx_post_valido_nao_redireciona(self):
+        data = {
+            "tipo": "balcao",
+            "contraparte": "Cargill",
+            "sacas": "300",
+            "preco_por_saca": "120.50",
+            "data_negociacao": "2025-03-01",
+        }
+        response = self.client.post(
+            reverse("vendas:nova", args=[self.safra.id]),
+            data,
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertNotEqual(response.status_code, 302)
+
+    def test_post_normal_redireciona_nao_retorna_fragmento(self):
+        data = {
+            "tipo": "balcao",
+            "contraparte": "Cargill",
+            "sacas": "300",
+            "preco_por_saca": "120.50",
+            "data_negociacao": "2025-03-01",
+        }
+        response = self.client.post(reverse("vendas:nova", args=[self.safra.id]), data)
+        self.assertEqual(response.status_code, 302)
