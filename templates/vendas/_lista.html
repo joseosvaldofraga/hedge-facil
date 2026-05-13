@@ -1,0 +1,13 @@
+{% for venda in vendas %}
+<div class="bg-white rounded-lg p-4 mb-3 shadow-sm border border-slate-100">
+  <div class="flex justify-between">
+    <span class="font-semibold">{{ venda.contraparte }}</span>
+    <span class="text-green-700 font-bold">R$ {{ venda.preco_por_saca }}</span>
+  </div>
+  <div class="text-sm text-slate-500 mt-1">
+    {{ venda.sacas }} sc · {{ venda.get_tipo_display }} · {{ venda.data_negociacao }}
+  </div>
+</div>
+{% empty %}
+<p class="text-slate-500 text-center py-8">Nenhuma venda lançada ainda.</p>
+{% endfor %}

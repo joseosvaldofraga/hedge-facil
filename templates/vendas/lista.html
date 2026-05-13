@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="flex justify-between items-center mb-4">
+  <h1 class="font-display text-xl font-bold text-green-800">Vendas — {{ safra }}</h1>
+  <a href="{% url 'vendas:nova' safra.id %}"
+     class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+    + Nova
+  </a>
+</div>
+<div id="lista-vendas">
+  {% include "vendas/_lista.html" %}
+</div>
+{% endblock %}
