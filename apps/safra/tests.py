@@ -51,3 +51,19 @@ class SafraNovaViewTestCase(TestCase):
     def test_nova_safra_post_invalido_form_tem_erros(self):
         response = self.client.post(reverse("safra:nova"), {})
         self.assertTrue(response.context["form"].errors)
+
+    def test_nova_safra_mostra_onboarding_para_primeiro_acesso(self):
+        # produtor from setUp has no safras
+        response = self.client.get(reverse("safra:nova"))
+        self.assertTrue(response.context.get("primeiro_acesso"))
+
+    def test_nova_safra_nao_mostra_onboarding_se_ja_tem_safra(self):
+        Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        response = self.client.get(reverse("safra:nova"))
+        self.assertFalse(response.context.get("primeiro_acesso"))

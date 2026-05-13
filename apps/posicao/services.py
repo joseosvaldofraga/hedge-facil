@@ -1,5 +1,6 @@
 from decimal import Decimal
 from dataclasses import dataclass
+from django.conf import settings
 from apps.safra.models import Safra
 
 
@@ -44,3 +45,7 @@ def calcular_posicao(safra: Safra) -> PosicaoSafra:
         custo_total=safra.custo_total.quantize(Decimal("0.01")),
         lucro_travado_parcial=lucro_parcial.quantize(Decimal("0.01")),
     )
+
+
+def get_cotacao_atual() -> Decimal:
+    return Decimal(str(getattr(settings, "COTACAO_SOJA_PADRAO", "130.00")))

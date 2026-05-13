@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from apps.contas.models import Produtor
 from apps.safra.models import Safra
+from apps.posicao.services import get_cotacao_atual
 
 
 class PainelViewTestCase(TestCase):
@@ -65,3 +66,32 @@ class PainelViewTestCase(TestCase):
         )
         response = self.client.get(reverse("posicao:painel"))
         self.assertRedirects(response, reverse("safra:nova"))
+
+
+class CotacaoAtualTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="cot_test", email="cot_test@test.com", password="senha123"
+        )
+        self.safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        self.client.force_login(self.produtor)
+
+    def test_get_cotacao_atual_retorna_decimal(self):
+        self.assertIsInstance(get_cotacao_atual(), Decimal)
+
+    def test_get_cotacao_atual_retorna_valor_positivo(self):
+        self.assertGreater(get_cotacao_atual(), Decimal("0"))
+
+    def test_painel_contexto_tem_cotacao(self):
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertIn("cotacao", response.context)
+
+    def test_painel_cotacao_e_decimal(self):
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertIsInstance(response.context["cotacao"], Decimal)

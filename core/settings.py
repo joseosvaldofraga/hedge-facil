@@ -98,3 +98,5 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 LOGIN_URL = "/"
 LOGIN_REDIRECT_URL = "/painel/"
+
+COTACAO_SOJA_PADRAO = "130.00"

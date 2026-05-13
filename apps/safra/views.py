@@ -14,4 +14,8 @@ def nova(request):
             return redirect("posicao:painel")
     else:
         form = SafraForm()
-    return render(request, "safra/nova.html", {"form": form})
+    primeiro_acesso = request.user.safras.count() == 0
+    return render(request, "safra/nova.html", {
+        "form": form,
+        "primeiro_acesso": primeiro_acesso,
+    })

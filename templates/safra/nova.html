@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block conteudo %}
+{% if primeiro_acesso %}
+<div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+  <h2 class="font-display text-lg font-bold text-green-800 mb-3">Bem-vindo ao HedgeFácil!</h2>
+  <ol class="space-y-2 text-sm text-green-900">
+    <li><span class="font-bold text-green-700">1.</span> Cadastre sua safra</li>
+    <li><span class="font-bold text-green-700">2.</span> Lance suas vendas</li>
+    <li><span class="font-bold text-green-700">3.</span> Veja seu painel</li>
+  </ol>
+</div>
+{% endif %}
 <h1 class="font-display text-2xl font-bold text-green-800 mb-6">Nova Safra</h1>
 <form method="post" class="space-y-4">
   {% csrf_token %}
