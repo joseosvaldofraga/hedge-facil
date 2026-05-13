@@ -30,3 +30,23 @@ class LoginMagicoTestCase(TestCase):
     def test_email_enviado_retorna_200(self):
         response = self.client.get(reverse("contas:email_enviado"))
         self.assertEqual(response.status_code, 200)
+
+
+class LogoutViewTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="ze_logout", email="ze_logout@test.com", password="senha123"
+        )
+        self.client.force_login(self.produtor)
+
+    def test_logout_post_desloga_usuario(self):
+        response = self.client.post(reverse("contas:logout"))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
+
+    def test_logout_post_redireciona_para_login(self):
+        response = self.client.post(reverse("contas:logout"))
+        self.assertRedirects(response, reverse("contas:login"))
+
+    def test_logout_get_nao_permitido(self):
+        response = self.client.get(reverse("contas:logout"))
+        self.assertEqual(response.status_code, 405)

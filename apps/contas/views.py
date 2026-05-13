@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
 from django.core.mail import send_mail
+from django.contrib import auth
+from django.views.decorators.http import require_POST
 from sesame.utils import get_query_string
 from .models import Produtor
 
@@ -25,3 +27,9 @@ def solicitar_login(request):
 
 def email_enviado(request):
     return render(request, "contas/email_enviado.html")
+
+
+@require_POST
+def logout_view(request):
+    auth.logout(request)
+    return redirect("contas:login")
