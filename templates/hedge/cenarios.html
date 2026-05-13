@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<h1 class="font-display text-2xl font-bold text-green-800 mb-2">Cenários de Preço</h1>
+<p class="text-sm text-slate-500 mb-4">{{ posicao.sacas_a_vender }} sc a vender · preço atual R$ {{ preco_atual }}</p>
+
+{% for cenario in cenarios %}
+<div class="bg-white rounded-xl p-4 mb-3 shadow-sm border border-slate-100">
+  <div class="flex justify-between items-center">
+    <span class="font-semibold text-slate-800">{{ cenario.nome }}</span>
+    <span class="font-display text-lg font-bold {% if cenario.impacto_vs_atual > 0 %}text-green-700{% elif cenario.impacto_vs_atual < 0 %}text-red-600{% else %}text-slate-700{% endif %}">
+      R$ {{ cenario.preco_projetado }}
+    </span>
+  </div>
+  <div class="mt-2 text-sm text-slate-600">
+    Receita: <strong>R$ {{ cenario.receita_no_saldo }}</strong>
+    <span class="ml-2 {% if cenario.impacto_vs_atual > 0 %}text-green-600{% elif cenario.impacto_vs_atual < 0 %}text-red-600{% endif %}">
+      ({% if cenario.impacto_vs_atual > 0 %}+{% endif %}R$ {{ cenario.impacto_vs_atual }})
+    </span>
+  </div>
+</div>
+{% endfor %}
+
+<a href="{% url 'hedge:proteger' safra.id %}"
+   class="block w-full bg-green-700 text-white text-center rounded-xl py-4 font-semibold mt-4 min-h-[48px]">
+  Quero me proteger
+</a>
+{% endblock %}
