@@ -1,5 +1,5 @@
 from decimal import Decimal, InvalidOperation
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from apps.safra.models import Safra
 from apps.posicao.services import calcular_posicao
@@ -30,3 +30,11 @@ def cenarios(request, safra_id):
 def proteger(request, safra_id):
     safra = get_object_or_404(Safra, id=safra_id, produtor=request.user)
     return render(request, "hedge/proteger.html", {"safra": safra})
+
+
+@login_required
+def hedge_redirect(request):
+    safra = Safra.objects.filter(produtor=request.user, ativa=True).first()
+    if safra:
+        return redirect("hedge:cenarios", safra_id=safra.id)
+    return redirect("safra:nova")

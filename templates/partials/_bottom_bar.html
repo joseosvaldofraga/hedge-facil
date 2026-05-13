@@ -4,7 +4,7 @@
     <span>📊</span>Posição
   </a>
   {# Hedge link fica dinâmico nos templates específicos que têm safra no contexto #}
-  <a href="#" class="flex flex-col items-center text-xs text-slate-600">
+  <a href="{% url 'hedge:redirect' %}" class="flex flex-col items-center text-xs text-slate-600">
     <span>🌱</span>Hedge
   </a>
 </nav>

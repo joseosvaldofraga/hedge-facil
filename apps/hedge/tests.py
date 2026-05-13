@@ -63,3 +63,40 @@ class HedgeViewsTestCase(TestCase):
         url = reverse("hedge:cenarios", args=[self.safra.id]) + "?preco_atual="
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
+
+
+class HedgeRedirectTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="redir_test", email="redir_test@test.com", password="senha123"
+        )
+        self.client.force_login(self.produtor)
+
+    def test_hedge_redirect_com_safra_redireciona_para_cenarios(self):
+        safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        response = self.client.get(reverse("hedge:redirect"))
+        self.assertRedirects(
+            response,
+            reverse("hedge:cenarios", args=[safra.id]),
+            fetch_redirect_response=False,
+        )
+
+    def test_hedge_redirect_sem_safra_redireciona_para_nova_safra(self):
+        response = self.client.get(reverse("hedge:redirect"))
+        self.assertRedirects(
+            response,
+            reverse("safra:nova"),
+            fetch_redirect_response=False,
+        )
+
+    def test_hedge_redirect_requer_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("hedge:redirect"))
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("cenarios", response["Location"])
