@@ -95,3 +95,36 @@ class CotacaoAtualTestCase(TestCase):
     def test_painel_cotacao_e_decimal(self):
         response = self.client.get(reverse("posicao:painel"))
         self.assertIsInstance(response.context["cotacao"], Decimal)
+
+
+class PosicaoPdfTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="pdf_user", email="pdf_user@test.com", password="senha123"
+        )
+        self.safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        self.client.force_login(self.produtor)
+
+    def test_pdf_retorna_200(self):
+        self.assertEqual(self.client.get(reverse("posicao:pdf")).status_code, 200)
+
+    def test_pdf_content_type_application_pdf(self):
+        self.assertEqual(
+            self.client.get(reverse("posicao:pdf"))["Content-Type"],
+            "application/pdf",
+        )
+
+    def test_pdf_requer_login(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("posicao:pdf")).status_code, 302)
+
+    def test_pdf_sem_safra_redireciona_para_nova_safra(self):
+        self.safra.delete()
+        response = self.client.get(reverse("posicao:pdf"))
+        self.assertRedirects(response, reverse("safra:nova"), fetch_redirect_response=False)

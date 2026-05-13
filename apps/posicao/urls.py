@@ -5,4 +5,5 @@ app_name = "posicao"
 
 urlpatterns = [
     path("", views.painel, name="painel"),
+    path("pdf/", views.pdf, name="pdf"),
 ]
