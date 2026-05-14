@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.password_validation import validate_password
 from .models import Produtor
 
 
@@ -18,8 +19,10 @@ class RegisterForm(forms.Form):
         cleaned_data = super().clean()
         p1 = cleaned_data.get("password1")
         p2 = cleaned_data.get("password2")
-        if p1 and p2 and p1 != p2:
-            raise forms.ValidationError("As senhas não coincidem.")
+        if p1 and p2:
+            if p1 != p2:
+                raise forms.ValidationError("As senhas não coincidem.")
+            validate_password(p1)
         return cleaned_data
 
     def save(self):

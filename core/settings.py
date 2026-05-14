@@ -92,7 +92,7 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-LOGIN_URL = "contas:login"
+LOGIN_URL = "/contas/"
 LOGIN_REDIRECT_URL = "/painel/"
 
 COTACAO_SOJA_PADRAO = "130.00"
