@@ -76,7 +76,7 @@ def simular_estrategias(
     for i in range(n_pontos):
         P = (cotacao * Decimal("0.60") + step * Decimal(str(i))).quantize(Decimal("0.01"))
         sem_protecao = float((P - custo).quantize(Decimal("0.01")))
-        futuro = float((cotacao - custo).quantize(Decimal("0.01")))
+        futuro = float((cotacao - custo).quantize(Decimal("0.01")))  # contrato travado ao preço atual
         put = float((max(P, strike_put) - custo - premio_put).quantize(Decimal("0.01")))
         collar_preco = max(strike_put, min(P, strike_call))
         collar = float((collar_preco + premio_call - premio_put - custo).quantize(Decimal("0.01")))
