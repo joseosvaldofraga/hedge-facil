@@ -4,7 +4,7 @@
 <p class="text-sm text-slate-500 mb-4">{{ posicao.sacas_a_vender }} sc a vender · preço atual R$ {{ preco_atual }}</p>
 
 {% for cenario in cenarios %}
-<div class="bg-white rounded-xl p-4 mb-3 shadow-sm border border-slate-100">
+<div class="rounded-xl p-4 mb-3 shadow-sm border {% if cenario.preco_projetado < safra.custo_por_saca %}bg-red-50 border-red-300{% else %}bg-white border-slate-100{% endif %}">
   <div class="flex justify-between items-center">
     <span class="font-semibold text-slate-800">{{ cenario.nome }}</span>
     <span class="font-display text-lg font-bold {% if cenario.impacto_vs_atual > 0 %}text-green-700{% elif cenario.impacto_vs_atual < 0 %}text-red-600{% else %}text-slate-700{% endif %}">
@@ -17,6 +17,11 @@
       ({% if cenario.impacto_vs_atual > 0 %}+{% endif %}R$ {{ cenario.impacto_vs_atual }})
     </span>
   </div>
+  {% if cenario.preco_projetado < safra.custo_por_saca %}
+  <div class="mt-2 text-sm font-semibold text-red-700">
+    ⚠ Abaixo do custo de produção
+  </div>
+  {% endif %}
 </div>
 {% endfor %}
 

@@ -87,12 +87,12 @@ class CalcularPosicaoTestCase(TestCase):
 
 
 class SimularCenariosTestCase(unittest.TestCase):
-    def test_retorna_3_cenarios_por_padrao(self):
+    def test_retorna_6_cenarios_por_padrao(self):
         cenarios = simular_cenarios(
             sacas_a_vender=Decimal("700"),
             preco_atual=Decimal("130"),
         )
-        self.assertEqual(len(cenarios), 3)
+        self.assertEqual(len(cenarios), 6)
 
     def test_cenario_estavel_variacao_zero_impacto_zero(self):
         cenarios = simular_cenarios(

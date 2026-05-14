@@ -12,19 +12,22 @@ class CenarioPreco:
 
 
 _NOMES_PADRAO = {
-    Decimal("-20"): "Preço cai 20%",
-    Decimal("0"): "Preço fica igual",
-    Decimal("15"): "Preço sobe 15%",
+    Decimal("-50"): "Queda extrema 50%",
+    Decimal("-35"): "Queda severa 35%",
+    Decimal("-20"): "Queda 20%",
+    Decimal("0"):   "Preço estável",
+    Decimal("15"):  "Alta 15%",
+    Decimal("30"):  "Alta forte 30%",
 }
 
 
 def simular_cenarios(
-    sacas_a_vender: Decimal,
     preco_atual: Decimal,
+    sacas_a_vender: Decimal = Decimal("1"),
     variacoes: list[Decimal] = None,
 ) -> list[CenarioPreco]:
     if variacoes is None:
-        variacoes = [Decimal("-20"), Decimal("0"), Decimal("15")]
+        variacoes = [Decimal("-50"), Decimal("-35"), Decimal("-20"), Decimal("0"), Decimal("15"), Decimal("30")]
 
     receita_estavel = sacas_a_vender * preco_atual
     cenarios = []

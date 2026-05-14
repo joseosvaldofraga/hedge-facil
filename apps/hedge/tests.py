@@ -28,9 +28,21 @@ class HedgeViewsTestCase(TestCase):
         response = self.client.get(reverse("hedge:cenarios", args=[self.safra.id]))
         self.assertEqual(response.status_code, 302)
 
-    def test_cenarios_contexto_tem_3_cenarios(self):
+    def test_cenarios_contexto_tem_6_cenarios(self):
         response = self.client.get(reverse("hedge:cenarios", args=[self.safra.id]))
-        self.assertEqual(len(response.context["cenarios"]), 3)
+        self.assertEqual(len(response.context["cenarios"]), 6)
+
+    def test_simular_cenarios_retorna_6_por_padrao(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(Decimal("130"))
+        self.assertEqual(len(cenarios), 6)
+
+    def test_cenarios_incluem_queda_50_e_alta_30(self):
+        from apps.hedge.services import simular_cenarios
+        cenarios = simular_cenarios(Decimal("130"))
+        variacoes = [c.variacao_percentual for c in cenarios]
+        self.assertIn(Decimal("-50"), variacoes)
+        self.assertIn(Decimal("30"), variacoes)
 
     def test_cenarios_contexto_tem_safra(self):
         response = self.client.get(reverse("hedge:cenarios", args=[self.safra.id]))
