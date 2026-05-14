@@ -1,32 +1,25 @@
 from django.shortcuts import render, redirect
-from django.core.mail import send_mail
 from django.contrib import auth
+from django.contrib.auth.forms import AuthenticationForm
 from django.views.decorators.http import require_POST
-from sesame.utils import get_query_string
-from .models import Produtor
+from .forms import RegisterForm
 
 
-def solicitar_login(request):
-    if request.method == "POST":
-        email = request.POST.get("email", "").strip()
-        if email:
-            produtor, _ = Produtor.objects.get_or_create(
-                email=email,
-                defaults={"username": email},
-            )
-            link = request.build_absolute_uri("/painel/") + get_query_string(produtor)
-            send_mail(
-                "Acesso HedgeFácil",
-                f"Acesse: {link}",
-                "no-reply@hedgefacil.com.br",
-                [email],
-            )
-        return redirect("contas:email_enviado")
-    return render(request, "contas/login.html")
+def login_view(request):
+    form = AuthenticationForm(data=request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        auth.login(request, form.get_user())
+        return redirect("posicao:painel")
+    return render(request, "contas/login.html", {"form": form})
 
 
-def email_enviado(request):
-    return render(request, "contas/email_enviado.html")
+def register_view(request):
+    form = RegisterForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        produtor = form.save()
+        auth.login(request, produtor)
+        return redirect("safra:nova")
+    return render(request, "contas/registro.html", {"form": form})
 
 
 @require_POST

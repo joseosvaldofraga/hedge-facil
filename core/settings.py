@@ -76,10 +76,7 @@ AUTH_USER_MODEL = "contas.Produtor"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
-    "sesame.backends.ModelBackend",
 ]
-
-SESAME_MAX_AGE = 60 * 60 * 24
 
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
@@ -96,7 +93,7 @@ CRISPY_TEMPLATE_PACK = "tailwind"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-LOGIN_URL = "/"
+LOGIN_URL = "contas:login"
 LOGIN_REDIRECT_URL = "/painel/"
 
 COTACAO_SOJA_PADRAO = "130.00"
