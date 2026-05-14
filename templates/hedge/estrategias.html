@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<h1 class="font-display text-2xl font-bold text-green-800 mb-4">Estratégias de Hedge</h1>
+<p class="text-slate-600 mb-2">Safra: {{ safra.ano_safra }}</p>
+<p class="text-slate-600 mb-2">Cotação base: R$ {{ cotacao }}</p>
+<p class="text-slate-600 mb-2">Strike Put: R$ {{ strike_put }} | Strike Call: R$ {{ strike_call }}</p>
+<p class="text-slate-600 mb-2">Prêmio Put: R$ {{ premio_put }} | Prêmio Call: R$ {{ premio_call }} | Prêmio líquido: R$ {{ premio_liquido }}</p>
+<p class="text-slate-600 mb-4">Volatilidade (sigma): {{ sigma }}</p>
+
+<table class="w-full text-sm mb-6">
+  <thead>
+    <tr class="bg-green-100">
+      <th class="p-2 text-left">Preço</th>
+      <th class="p-2 text-right">Sem proteção</th>
+      <th class="p-2 text-right">Futuro</th>
+      <th class="p-2 text-right">Put</th>
+      <th class="p-2 text-right">Collar</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in tabela_pontos %}
+    <tr class="{% if p.is_atual %}bg-yellow-50 font-semibold{% else %}border-b{% endif %}">
+      <td class="p-2">R$ {{ p.preco }}</td>
+      <td class="p-2 text-right">{{ p.sem_protecao }}</td>
+      <td class="p-2 text-right">{{ p.futuro }}</td>
+      <td class="p-2 text-right">{{ p.put }}</td>
+      <td class="p-2 text-right">{{ p.collar }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+var pontos = {{ pontos_json|safe }};
+</script>
+{% endblock %}
