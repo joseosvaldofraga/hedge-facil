@@ -117,6 +117,8 @@ def _buscar_cotacao_yfinance() -> tuple[Decimal, Decimal]:
     close = tickers["Close"]
     zs = close["ZS=F"].dropna()
     brl = close["USDBRL=X"].dropna()
+    if zs.empty or brl.empty:
+        raise ValueError("Dados insuficientes do yfinance")
     preco_cents = Decimal(str(float(zs.iloc[-1])))
     brl_rate = Decimal(str(float(brl.iloc[-1])))
     cotacao = (preco_cents / 100) * _SACA_POR_BUSHEL * brl_rate
@@ -155,7 +157,8 @@ def get_cotacao_com_variacao() -> dict:
 
 def get_historico_cotacao(dias: int = 30) -> list:
     """Retorna lista de {'data': 'DD/MM', 'preco': float} para Chart.js."""
-    cached = cache.get("historico_cotacao_30d")
+    cache_key = f"historico_cotacao_{dias}d"
+    cached = cache.get(cache_key)
     if cached is not None:
         return cached
     try:
@@ -171,7 +174,7 @@ def get_historico_cotacao(dias: int = 30) -> list:
         for idx, row in merged.iterrows():
             preco = (Decimal(str(float(row["zs"]))) / 100) * _SACA_POR_BUSHEL * Decimal(str(float(row["brl"])))
             resultado.append({"data": idx.strftime("%d/%m"), "preco": float(preco.quantize(Decimal("0.01")))})
-        cache.set("historico_cotacao_30d", resultado, 3600)
+        cache.set(cache_key, resultado, 3600)
         return resultado
     except Exception:
         return []
