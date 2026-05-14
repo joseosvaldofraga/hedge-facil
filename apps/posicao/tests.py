@@ -1,4 +1,6 @@
 from decimal import Decimal
+from unittest.mock import patch, MagicMock
+import json
 from django.test import TestCase
 from django.urls import reverse
 from apps.contas.models import Produtor
@@ -13,15 +15,23 @@ class PainelViewTestCase(TestCase):
             username="ze", email="ze@test.com", password="senha123"
         )
         self.client.force_login(self.produtor)
+        self.patcher = patch(
+            "apps.posicao.services._buscar_cotacao_yfinance",
+            return_value=(Decimal("130.00"), Decimal("0")),
+        )
+        self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
 
     def test_painel_requer_login(self):
         self.client.logout()
         response = self.client.get(reverse("posicao:painel"))
         self.assertEqual(response.status_code, 302)
 
-    def test_painel_sem_safra_redireciona_para_nova_safra(self):
+    def test_painel_sem_safra_retorna_200(self):
         response = self.client.get(reverse("posicao:painel"))
-        self.assertRedirects(response, reverse("safra:nova"))
+        self.assertEqual(response.status_code, 200)
 
     def test_painel_com_safra_retorna_200(self):
         Safra.objects.create(
@@ -66,7 +76,9 @@ class PainelViewTestCase(TestCase):
             custo_por_saca=Decimal("60"),
         )
         response = self.client.get(reverse("posicao:painel"))
-        self.assertRedirects(response, reverse("safra:nova"))
+        # No safra for current user -> 200 with safra=None (no redirect anymore)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.context["safra"])
 
 
 class CotacaoAtualTestCase(TestCase):
@@ -82,6 +94,14 @@ class CotacaoAtualTestCase(TestCase):
             custo_por_saca=Decimal("80"),
         )
         self.client.force_login(self.produtor)
+        self.patcher = patch(
+            "apps.posicao.services._buscar_cotacao_yfinance",
+            return_value=(Decimal("130.00"), Decimal("0")),
+        )
+        self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
 
     def test_get_cotacao_atual_retorna_decimal(self):
         self.assertIsInstance(get_cotacao_atual(), Decimal)
@@ -227,6 +247,14 @@ class PainelRiscoViewTestCase(TestCase):
             custo_por_saca=Decimal("80"),
         )
         self.client.force_login(self.produtor)
+        self.patcher = patch(
+            "apps.posicao.services._buscar_cotacao_yfinance",
+            return_value=(Decimal("130.00"), Decimal("0")),
+        )
+        self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
 
     def test_painel_contexto_tem_risco(self):
         response = self.client.get(reverse("posicao:painel"))
@@ -236,3 +264,69 @@ class PainelRiscoViewTestCase(TestCase):
         from apps.posicao.services import RiscoSafra
         response = self.client.get(reverse("posicao:painel"))
         self.assertIsInstance(response.context["risco"], RiscoSafra)
+
+
+class CotacaoRealTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="mkttest", email="mkt@test.com", password="senha123"
+        )
+        self.client.force_login(self.produtor)
+
+    def test_get_cotacao_com_variacao_tem_chaves_necessarias(self):
+        from apps.posicao.services import get_cotacao_com_variacao
+        with patch("apps.posicao.services._buscar_cotacao_yfinance") as mock:
+            mock.return_value = (Decimal("132.50"), Decimal("1.20"))
+            resultado = get_cotacao_com_variacao()
+        self.assertIn("cotacao", resultado)
+        self.assertIn("variacao_pct", resultado)
+        self.assertIn("variacao_abs", resultado)
+        self.assertIn("fonte", resultado)
+
+    def test_get_cotacao_com_variacao_fallback_quando_falha(self):
+        from django.core.cache import cache as django_cache
+        from apps.posicao.services import get_cotacao_com_variacao
+        django_cache.delete("cotacao_soja_completa")
+        with patch("apps.posicao.services._buscar_cotacao_yfinance", side_effect=Exception("network error")):
+            resultado = get_cotacao_com_variacao()
+        self.assertEqual(resultado["fonte"], "estimado")
+        self.assertIsInstance(resultado["cotacao"], Decimal)
+
+    def test_get_historico_cotacao_retorna_lista(self):
+        from apps.posicao.services import get_historico_cotacao
+        import pandas as pd
+        import numpy as np
+        mock_df_zs = pd.Series([1020.0, 1030.0, 1040.0], name="ZS=F")
+        mock_df_brl = pd.Series([5.80, 5.82, 5.81], name="USDBRL=X")
+        mock_close = pd.DataFrame({"ZS=F": mock_df_zs, "USDBRL=X": mock_df_brl})
+        mock_tickers = MagicMock()
+        mock_tickers.__getitem__ = lambda self, key: mock_close
+        with patch("yfinance.download", return_value=mock_tickers):
+            resultado = get_historico_cotacao(dias=3)
+        self.assertIsInstance(resultado, list)
+
+    def test_get_historico_cotacao_fallback_retorna_lista_vazia(self):
+        from django.core.cache import cache as django_cache
+        from apps.posicao.services import get_historico_cotacao
+        django_cache.delete("historico_cotacao_30d")
+        with patch("yfinance.download", side_effect=Exception("network error")):
+            resultado = get_historico_cotacao(dias=3)
+        self.assertEqual(resultado, [])
+
+    def test_painel_sem_safra_retorna_200(self):
+        with patch("apps.posicao.services._buscar_cotacao_yfinance") as mock:
+            mock.return_value = (Decimal("132.50"), Decimal("1.20"))
+            response = self.client.get(reverse("posicao:painel"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_painel_contexto_tem_mercado(self):
+        with patch("apps.posicao.services._buscar_cotacao_yfinance") as mock:
+            mock.return_value = (Decimal("132.50"), Decimal("1.20"))
+            response = self.client.get(reverse("posicao:painel"))
+        self.assertIn("mercado", response.context)
+
+    def test_painel_contexto_tem_historico_json(self):
+        with patch("apps.posicao.services._buscar_cotacao_yfinance") as mock:
+            mock.return_value = (Decimal("132.50"), Decimal("1.20"))
+            response = self.client.get(reverse("posicao:painel"))
+        self.assertIn("historico_json", response.context)

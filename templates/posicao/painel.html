@@ -6,6 +6,8 @@
   <span class="font-display font-bold text-amber-900">R$ {{ cotacao }}</span>
 </div>
 
+{% if safra %}
+
 <div class="rounded-xl p-4 mb-4 border {% if risco.em_zona_critica %}bg-red-50 border-red-300{% else %}bg-amber-50 border-amber-200{% endif %}">
   <p class="text-xs font-semibold uppercase tracking-wide mb-1 {% if risco.em_zona_critica %}text-red-700{% else %}text-amber-700{% endif %}">
     Exposição no saldo
@@ -119,4 +121,17 @@
    class="block w-full border border-slate-400 text-slate-600 text-center rounded-xl py-3 font-semibold mt-3 min-h-[48px] text-sm">
   Baixar PDF
 </a>
+
+{% else %}
+
+<div class="bg-white rounded-xl p-6 text-center shadow-sm mb-4">
+  <p class="text-slate-600 mb-4">Você ainda não tem uma safra cadastrada.</p>
+  <a href="{% url 'safra:nova' %}"
+     class="inline-block bg-green-700 text-white rounded-xl px-6 py-3 font-semibold">
+    Cadastrar safra
+  </a>
+</div>
+
+{% endif %}
+
 {% endblock %}
