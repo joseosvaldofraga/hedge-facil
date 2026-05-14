@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 from apps.safra.models import Safra
 from .models import Venda
@@ -56,3 +57,16 @@ def editar(request, venda_id):
         "action_url": reverse("vendas:editar", args=[venda.id]),
         "form_title": "Editar Venda",
     })
+
+
+@login_required
+@require_POST
+def deletar(request, venda_id):
+    venda = get_object_or_404(Venda, id=venda_id, safra__produtor=request.user)
+    safra = venda.safra
+    venda.delete()
+    if request.htmx:
+        return render(request, "vendas/_lista.html", {
+            "vendas": safra.vendas.all(), "safra": safra,
+        })
+    return redirect("vendas:lista", safra_id=safra.id)

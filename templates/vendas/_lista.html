@@ -1,21 +1,31 @@
-{% for venda in vendas %}
-<div class="bg-white rounded-lg p-4 mb-3 shadow-sm border border-slate-100">
-  <div class="flex justify-between">
-    <span class="font-semibold">{{ venda.contraparte }}</span>
-    <span class="text-green-700 font-bold">R$ {{ venda.preco_por_saca }}</span>
+<div id="lista-vendas">
+  {% for venda in vendas %}
+  <div class="bg-white rounded-lg p-4 mb-3 shadow-sm border border-slate-100">
+    <div class="flex justify-between">
+      <span class="font-semibold">{{ venda.contraparte }}</span>
+      <span class="text-green-700 font-bold">R$ {{ venda.preco_por_saca }}</span>
+    </div>
+    <div class="text-sm text-slate-500 mt-1">
+      {{ venda.sacas }} sc · {{ venda.get_tipo_display }} · {{ venda.data_negociacao }}
+    </div>
+    <div class="flex gap-2 mt-2">
+      <button hx-get="{% url 'vendas:editar' venda.id %}"
+              hx-target="#venda-form-container"
+              hx-swap="innerHTML"
+              class="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1">
+        Editar
+      </button>
+      <button hx-post="{% url 'vendas:deletar' venda.id %}"
+              hx-target="#lista-vendas"
+              hx-swap="outerHTML"
+              hx-confirm="Deletar esta venda?"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              class="text-xs text-red-600 border border-red-300 rounded px-2 py-1">
+        Deletar
+      </button>
+    </div>
   </div>
-  <div class="text-sm text-slate-500 mt-1">
-    {{ venda.sacas }} sc · {{ venda.get_tipo_display }} · {{ venda.data_negociacao }}
-  </div>
-  <div class="flex gap-2 mt-2">
-    <button hx-get="{% url 'vendas:editar' venda.id %}"
-            hx-target="#venda-form-container"
-            hx-swap="innerHTML"
-            class="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1">
-      Editar
-    </button>
-  </div>
+  {% empty %}
+  <p class="text-slate-500 text-center py-8">Nenhuma venda lançada ainda.</p>
+  {% endfor %}
 </div>
-{% empty %}
-<p class="text-slate-500 text-center py-8">Nenhuma venda lançada ainda.</p>
-{% endfor %}
