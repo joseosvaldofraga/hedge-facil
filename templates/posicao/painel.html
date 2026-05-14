@@ -1,11 +1,63 @@
 {% extends "base.html" %}
 {% block conteudo %}
 
-<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex justify-between items-center">
-  <span class="text-sm text-amber-800">Cotação soja hoje</span>
-  <span class="font-display font-bold text-amber-900">R$ {{ cotacao }}</span>
+<!-- Section 1: Mercado de Soja -->
+<div class="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-slate-100">
+  <div class="flex justify-between items-center mb-1">
+    <h2 class="font-display font-bold text-green-800 text-lg">Mercado de Soja</h2>
+    <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{{ mercado.fonte }}</span>
+  </div>
+  <div class="flex items-baseline gap-3 mb-4">
+    <span class="font-display text-4xl font-bold text-slate-900">R$ {{ mercado.cotacao }}</span>
+    {% if mercado.variacao_pct > 0 %}
+    <span class="text-sm font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+      ▲ +{{ mercado.variacao_pct }}% (R$ +{{ mercado.variacao_abs }})
+    </span>
+    {% elif mercado.variacao_pct < 0 %}
+    <span class="text-sm font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+      ▼ {{ mercado.variacao_pct }}% (R$ {{ mercado.variacao_abs }})
+    </span>
+    {% else %}
+    <span class="text-sm text-slate-400">— estável</span>
+    {% endif %}
+  </div>
+  <div style="height:200px">
+    <canvas id="chartCotacao"></canvas>
+  </div>
 </div>
 
+<script>
+(function() {
+  const dados = JSON.parse('{{ historico_json|escapejs }}');
+  const ctx = document.getElementById('chartCotacao');
+  if (!ctx || !dados.length) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dados.map(d => d.data),
+      datasets: [{
+        data: dados.map(d => d.preco),
+        borderColor: 'rgb(22, 163, 74)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 }, callback: v => 'R$' + v } }
+      }
+    }
+  });
+})();
+</script>
+
+<!-- Section 2: Safra content -->
 {% if safra %}
 
 <div class="rounded-xl p-4 mb-4 border {% if risco.em_zona_critica %}bg-red-50 border-red-300{% else %}bg-amber-50 border-amber-200{% endif %}">
@@ -124,10 +176,12 @@
 
 {% else %}
 
-<div class="bg-white rounded-xl p-6 text-center shadow-sm mb-4">
-  <p class="text-slate-600 mb-4">Você ainda não tem uma safra cadastrada.</p>
+<div class="border-2 border-dashed border-green-200 rounded-2xl p-8 text-center">
+  <div class="text-4xl mb-3">🌱</div>
+  <h3 class="font-display text-lg font-bold text-green-800 mb-2">Cadastre sua safra</h3>
+  <p class="text-slate-500 text-sm mb-5">Veja sua posição de hedge, preço médio e risco em tempo real.</p>
   <a href="{% url 'safra:nova' %}"
-     class="inline-block bg-green-700 text-white rounded-xl px-6 py-3 font-semibold">
+     class="inline-block bg-green-700 hover:bg-green-800 text-white rounded-xl px-6 py-3 font-semibold transition-colors">
     Cadastrar safra
   </a>
 </div>
