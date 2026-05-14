@@ -1,0 +1,37 @@
+{% if user.is_authenticated %}
+<aside class="hidden md:flex flex-col fixed inset-y-0 left-0 w-60 bg-green-800 text-white z-10">
+  <div class="px-6 py-5 border-b border-green-700">
+    <span class="font-display font-bold text-xl">HedgeFácil</span>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <a href="{% url 'posicao:painel' %}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-green-100 hover:bg-green-700 hover:text-white transition-colors">
+      <span>📊</span> Painel
+    </a>
+    <a href="{% url 'safra:lista' %}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-green-100 hover:bg-green-700 hover:text-white transition-colors">
+      <span>🌾</span> Safras
+    </a>
+    {% if safra %}
+    <a href="{% url 'vendas:lista' safra.id %}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-green-100 hover:bg-green-700 hover:text-white transition-colors">
+      <span>📋</span> Vendas
+    </a>
+    <a href="{% url 'hedge:cenarios' safra.id %}"
+       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-green-100 hover:bg-green-700 hover:text-white transition-colors">
+      <span>🌱</span> Hedge
+    </a>
+    {% endif %}
+  </nav>
+  <div class="px-6 py-4 border-t border-green-700">
+    <p class="text-xs text-green-300 mb-2">{{ user.username }}</p>
+    <form method="post" action="{% url 'contas:logout' %}">
+      {% csrf_token %}
+      <button type="submit"
+        class="text-sm text-green-200 hover:text-white bg-transparent border-0 cursor-pointer transition-colors">
+        Sair
+      </button>
+    </form>
+  </div>
+</aside>
+{% endif %}

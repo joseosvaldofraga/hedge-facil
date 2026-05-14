@@ -1,9 +1,9 @@
-<header class="bg-green-800 text-white px-5 py-3 flex justify-between items-center">
+{% if user.is_authenticated %}
+<header class="md:hidden bg-green-800 text-white px-5 py-3 flex justify-between items-center">
   <span class="font-display font-bold text-lg">HedgeFácil</span>
-  {% if user.is_authenticated %}
   <form method="post" action="{% url 'contas:logout' %}">
     {% csrf_token %}
     <button type="submit" class="text-sm text-green-200 bg-transparent border-0 cursor-pointer">Sair</button>
   </form>
-  {% endif %}
 </header>
+{% endif %}
