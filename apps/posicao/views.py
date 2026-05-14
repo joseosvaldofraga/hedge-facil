@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 from apps.safra.models import Safra
-from .services import calcular_posicao, get_cotacao_atual
+from .services import calcular_posicao, calcular_risco, get_cotacao_atual
 
 
 @login_required
@@ -13,10 +13,12 @@ def painel(request):
         return redirect("safra:nova")
     posicao = calcular_posicao(safra)
     cotacao = get_cotacao_atual()
+    risco = calcular_risco(posicao, safra, cotacao)
     return render(request, "posicao/painel.html", {
         "posicao": posicao,
         "safra": safra,
         "cotacao": cotacao,
+        "risco": risco,
     })
 
 

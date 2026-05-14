@@ -212,3 +212,27 @@ class RiscoSafraTestCase(TestCase):
         posicao = calcular_posicao(self.safra)
         risco = calcular_risco(posicao, self.safra, Decimal("88.00"))
         self.assertFalse(risco.em_zona_critica)
+
+
+class PainelRiscoViewTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="risco_view", email="riscoview@test.com", password="senha123"
+        )
+        Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        self.client.force_login(self.produtor)
+
+    def test_painel_contexto_tem_risco(self):
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertIn("risco", response.context)
+
+    def test_painel_risco_e_instancia_de_risco_safra(self):
+        from apps.posicao.services import RiscoSafra
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertIsInstance(response.context["risco"], RiscoSafra)
