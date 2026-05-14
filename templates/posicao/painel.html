@@ -6,7 +6,10 @@
 </div>
 
 <div class="mb-6">
-  <p class="text-sm text-slate-500">{{ safra }}</p>
+  <div class="flex items-center gap-2">
+    <p class="text-sm text-slate-500">{{ safra }}</p>
+    <a href="{% url 'safra:lista' %}" class="text-xs text-green-600 underline">Trocar</a>
+  </div>
   <h1 class="font-display text-4xl font-bold text-green-800">
     R$ {{ posicao.preco_medio_ponderado }}
   </h1>
