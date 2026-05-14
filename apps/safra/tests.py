@@ -140,3 +140,18 @@ class SafraAtivarViewTestCase(TestCase):
         url = reverse("safra:ativar", args=[self.safra2.id])
         response = self.client.post(url)
         self.assertRedirects(response, reverse("posicao:painel"), fetch_redirect_response=False)
+
+    def test_ativar_rejeita_get(self):
+        url = reverse("safra:ativar", args=[self.safra2.id])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_ativar_impede_acesso_de_outro_produtor(self):
+        outro = Produtor.objects.create_user(
+            username="outro_ativar", email="outro_ativar@test.com", password="senha123"
+        )
+        safra_outro = Safra.objects.create(
+            produtor=outro, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
+        )
+        url = reverse("safra:ativar", args=[safra_outro.id])
+        self.assertEqual(self.client.post(url).status_code, 404)
