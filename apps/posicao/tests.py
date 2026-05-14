@@ -206,3 +206,9 @@ class RiscoSafraTestCase(TestCase):
         posicao = calcular_posicao(self.safra)
         risco = calcular_risco(posicao, self.safra, self.cotacao)
         self.assertEqual(risco.exposicao_no_saldo, Decimal("50000.00"))
+
+    def test_risco_em_zona_critica_na_fronteira_exata(self):
+        # preco_ruina=80, 80*1.10=88.00 → cotacao=88.00 NOT in zona crítica (strict <)
+        posicao = calcular_posicao(self.safra)
+        risco = calcular_risco(posicao, self.safra, Decimal("88.00"))
+        self.assertFalse(risco.em_zona_critica)

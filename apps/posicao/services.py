@@ -60,8 +60,9 @@ def calcular_posicao(safra: Safra) -> PosicaoSafra:
     )
 
 
-def calcular_risco(posicao: PosicaoSafra, safra: Safra, cotacao: Decimal) -> RiscoSafra:
-    vendas = safra.vendas.all()
+def calcular_risco(posicao: PosicaoSafra, safra: Safra, cotacao: Decimal, vendas=None) -> RiscoSafra:
+    if vendas is None:
+        vendas = list(safra.vendas.all())
     sacas_com_piso = sum(
         (v.sacas for v in vendas if v.tipo == "opcao_b3"), Decimal("0")
     )
@@ -96,8 +97,8 @@ def calcular_risco(posicao: PosicaoSafra, safra: Safra, cotacao: Decimal) -> Ris
         margem_seguranca=margem.quantize(Decimal("0.01")),
         pct_custo_coberto=pct_coberto.quantize(Decimal("0.01")),
         em_zona_critica=em_zona_critica,
-        sacas_travadas=sacas_travadas,
-        sacas_com_piso=sacas_com_piso,
+        sacas_travadas=sacas_travadas.quantize(Decimal("0.01")),
+        sacas_com_piso=sacas_com_piso.quantize(Decimal("0.01")),
         pct_convexo=pct_convexo.quantize(Decimal("0.01")),
         convexidade_label=label,
         exposicao_no_saldo=exposicao.quantize(Decimal("0.01")),
