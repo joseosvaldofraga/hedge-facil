@@ -215,3 +215,54 @@ class VendaEditarTestCase(TestCase):
             "preco_por_saca": "130.00",
             "data_negociacao": "2025-03-01",
         }).status_code, 404)
+
+
+class VendaDeletarTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="del_user", email="del@test.com", password="senha123"
+        )
+        self.safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura="soja",
+            ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"),
+            custo_por_saca=Decimal("80"),
+        )
+        self.venda = Venda.objects.create(
+            safra=self.safra,
+            tipo="balcao",
+            contraparte="Cargill",
+            sacas=Decimal("300"),
+            preco_por_saca=Decimal("120"),
+            data_negociacao="2025-03-01",
+        )
+        self.client.force_login(self.produtor)
+
+    def test_deletar_requer_login(self):
+        self.client.logout()
+        url = reverse("vendas:deletar", args=[self.venda.id])
+        self.assertEqual(self.client.post(url).status_code, 302)
+
+    def test_deletar_post_remove_venda(self):
+        url = reverse("vendas:deletar", args=[self.venda.id])
+        self.client.post(url)
+        self.assertEqual(Venda.objects.count(), 0)
+
+    def test_deletar_post_404_para_venda_de_outro_produtor(self):
+        outro = Produtor.objects.create_user(
+            username="outro_del", email="outro_del@test.com", password="senha123"
+        )
+        self.client.force_login(outro)
+        url = reverse("vendas:deletar", args=[self.venda.id])
+        self.assertEqual(self.client.post(url).status_code, 404)
+
+    def test_deletar_get_nao_permitido(self):
+        url = reverse("vendas:deletar", args=[self.venda.id])
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_deletar_htmx_retorna_fragmento(self):
+        url = reverse("vendas:deletar", args=[self.venda.id])
+        response = self.client.post(url, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "vendas/_lista.html")
