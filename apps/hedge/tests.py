@@ -112,3 +112,83 @@ class HedgeRedirectTestCase(TestCase):
         response = self.client.get(reverse("hedge:redirect"))
         self.assertEqual(response.status_code, 302)
         self.assertNotIn("cenarios", response["Location"])
+
+
+from math import isfinite
+
+
+class BlackScholesTestCase(TestCase):
+    def test_put_retorna_decimal(self):
+        from apps.hedge.services import black_scholes_put
+        resultado = black_scholes_put(Decimal("130"), Decimal("130"), Decimal("0.5"))
+        self.assertIsInstance(resultado, Decimal)
+
+    def test_call_retorna_decimal(self):
+        from apps.hedge.services import black_scholes_call
+        resultado = black_scholes_call(Decimal("130"), Decimal("130"), Decimal("0.5"))
+        self.assertIsInstance(resultado, Decimal)
+
+    def test_put_otm_menor_que_put_itm(self):
+        from apps.hedge.services import black_scholes_put
+        put_itm = black_scholes_put(Decimal("130"), Decimal("140"), Decimal("0.5"))
+        put_otm = black_scholes_put(Decimal("130"), Decimal("120"), Decimal("0.5"))
+        self.assertGreater(put_itm, put_otm)
+
+    def test_volatilidade_fallback_quando_poucos_dados(self):
+        from apps.hedge.services import calcular_volatilidade_historica
+        resultado = calcular_volatilidade_historica([{"preco": 130.0}, {"preco": 131.0}])
+        self.assertEqual(resultado, 0.35)
+
+    def test_volatilidade_retorna_float(self):
+        from apps.hedge.services import calcular_volatilidade_historica
+        dados = [{"preco": 130.0 + i * 0.5} for i in range(10)]
+        resultado = calcular_volatilidade_historica(dados)
+        self.assertIsInstance(resultado, float)
+        self.assertTrue(isfinite(resultado))
+
+
+class SimularEstrategiasTestCase(TestCase):
+    def _historico(self):
+        return [{"preco": 130.0 + i * 0.5} for i in range(30)]
+
+    def test_retorna_31_pontos(self):
+        from apps.hedge.services import simular_estrategias
+        r = simular_estrategias(Decimal("130"), Decimal("80"), Decimal("130"), 6, self._historico())
+        self.assertEqual(len(r["pontos"]), 31)
+
+    def test_futuro_e_linha_constante(self):
+        from apps.hedge.services import simular_estrategias
+        r = simular_estrategias(Decimal("130"), Decimal("80"), Decimal("130"), 6, self._historico())
+        lucros = [p["futuro"] for p in r["pontos"]]
+        self.assertEqual(len(set(lucros)), 1)
+
+    def test_sem_protecao_cresce_com_preco(self):
+        from apps.hedge.services import simular_estrategias
+        r = simular_estrategias(Decimal("130"), Decimal("80"), Decimal("130"), 6, self._historico())
+        lucros = [p["sem_protecao"] for p in r["pontos"]]
+        self.assertEqual(lucros, sorted(lucros))
+
+    def test_put_limitada_pelo_piso(self):
+        from apps.hedge.services import simular_estrategias
+        r = simular_estrategias(Decimal("130"), Decimal("80"), Decimal("130"), 6, self._historico())
+        premio = r["premio_put"]
+        piso = float(Decimal("130") - Decimal("80") - premio)
+        lucros = [p["put"] for p in r["pontos"]]
+        self.assertAlmostEqual(min(lucros), piso, places=0)
+
+    def test_collar_limitado_pelo_teto(self):
+        from apps.hedge.services import simular_estrategias
+        r = simular_estrategias(Decimal("130"), Decimal("80"), Decimal("130"), 6, self._historico())
+        lucros = [p["collar"] for p in r["pontos"]]
+        max_collar = max(lucros)
+        for l in lucros[-5:]:
+            self.assertAlmostEqual(l, max_collar, places=0)
+
+    def test_resultado_tem_chaves_necessarias(self):
+        from apps.hedge.services import simular_estrategias
+        r = simular_estrategias(Decimal("130"), Decimal("80"), Decimal("130"), 6, self._historico())
+        self.assertIn("pontos", r)
+        self.assertIn("premio_put", r)
+        self.assertIn("premio_call", r)
+        self.assertIn("sigma", r)
+        self.assertIn("strike_call", r)
