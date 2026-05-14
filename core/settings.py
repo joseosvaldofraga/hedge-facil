@@ -17,7 +17,6 @@ INSTALLED_APPS = [
     "django_htmx",
     "crispy_forms",
     "crispy_tailwind",
-    "sesame",
     "apps.contas",
     "apps.safra",
     "apps.vendas",
