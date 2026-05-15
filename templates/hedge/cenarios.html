@@ -1,36 +1,58 @@
 {% extends "base.html" %}
 {% block conteudo %}
-<h1 class="font-display text-2xl font-bold text-green-800 mb-2">Cenários de Preço</h1>
-<p class="text-sm text-slate-500 mb-4">{{ posicao.sacas_a_vender }} sc a vender · preço atual R$ {{ preco_atual }}</p>
+
+<div class="mb-5">
+  <h1 class="font-display text-2xl font-bold text-green-800 mb-0.5">Cenários de Preço</h1>
+  <p class="text-sm text-slate-500">{{ posicao.sacas_a_vender }} sc a vender · cotação R$ {{ preco_atual }}/sc</p>
+</div>
 
 {% for cenario in cenarios %}
-<div class="rounded-xl p-4 mb-3 shadow-sm border {% if cenario.preco_projetado < safra.custo_por_saca %}bg-red-50 border-red-300{% else %}bg-white border-slate-100{% endif %}">
-  <div class="flex justify-between items-center">
-    <span class="font-semibold text-slate-800">{{ cenario.nome }}</span>
-    <span class="font-display text-lg font-bold {% if cenario.impacto_vs_atual > 0 %}text-green-700{% elif cenario.impacto_vs_atual < 0 %}text-red-600{% else %}text-slate-700{% endif %}">
+<div class="bg-white rounded-xl p-4 mb-3 shadow-sm border {% if cenario.preco_projetado < safra.custo_por_saca %}border-red-300 bg-red-50{% else %}border-slate-100{% endif %}">
+  <div class="flex justify-between items-center mb-2">
+    <div class="flex items-center gap-2">
+      <span class="font-semibold text-sm {% if cenario.preco_projetado < safra.custo_por_saca %}text-red-800{% else %}text-slate-800{% endif %}">
+        {{ cenario.nome }}
+      </span>
+      {% if cenario.variacao_percentual > 0 %}
+      <span class="text-xs font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">▲ +{{ cenario.variacao_percentual }}%</span>
+      {% elif cenario.variacao_percentual < 0 %}
+      <span class="text-xs font-semibold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">▼ {{ cenario.variacao_percentual }}%</span>
+      {% else %}
+      <span class="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">— estável</span>
+      {% endif %}
+    </div>
+    <span class="font-display text-lg font-bold {% if cenario.preco_projetado < safra.custo_por_saca %}text-red-700{% elif cenario.impacto_vs_atual > 0 %}text-green-700{% else %}text-slate-700{% endif %}">
       R$ {{ cenario.preco_projetado }}
     </span>
   </div>
-  <div class="mt-2 text-sm text-slate-600">
-    Receita: <strong>R$ {{ cenario.receita_no_saldo }}</strong>
-    <span class="ml-2 {% if cenario.impacto_vs_atual > 0 %}text-green-600{% elif cenario.impacto_vs_atual < 0 %}text-red-600{% endif %}">
-      ({% if cenario.impacto_vs_atual > 0 %}+{% endif %}R$ {{ cenario.impacto_vs_atual }})
+
+  <div class="flex justify-between text-xs text-slate-500 mb-2">
+    <span>Receita: <strong class="text-slate-700">R$ {{ cenario.receita_no_saldo }}</strong></span>
+    <span class="{% if cenario.impacto_vs_atual > 0 %}text-green-600{% elif cenario.impacto_vs_atual < 0 %}text-red-600{% endif %} font-medium">
+      {% if cenario.impacto_vs_atual > 0 %}+{% endif %}R$ {{ cenario.impacto_vs_atual }}
     </span>
   </div>
-  {% if cenario.preco_projetado < safra.custo_por_saca %}
-  <div class="mt-2 text-sm font-semibold text-red-700">
-    ⚠ Abaixo do custo de produção
+
+  {% if cenario.preco_projetado >= safra.custo_por_saca %}
+  <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+    <div class="h-1.5 rounded-full {% if cenario.variacao_percentual >= 0 %}bg-green-500{% else %}bg-amber-400{% endif %}"
+         style="width: {% widthratio cenario.preco_projetado preco_atual 100 %}%">
+    </div>
+  </div>
+  {% else %}
+  <div class="flex items-center gap-1.5 mt-1">
+    <span class="text-xs font-semibold text-red-700">⚠ Abaixo do custo de produção</span>
   </div>
   {% endif %}
 </div>
 {% endfor %}
 
-<a href="{% url 'hedge:proteger' safra.id %}"
-   class="block w-full bg-green-700 text-white text-center rounded-xl py-4 font-semibold mt-4 min-h-[48px]">
-  Quero me proteger
-</a>
 <a href="{% url 'hedge:estrategias' safra.id %}"
-   class="block w-full border border-green-700 text-green-700 text-center rounded-xl py-4 font-semibold mt-3 min-h-[48px]">
+   class="block w-full bg-green-700 hover:bg-green-800 text-white text-center rounded-xl py-4 font-semibold mt-4 min-h-[48px] transition-colors">
   Simular estratégias com opções
+</a>
+<a href="{% url 'hedge:proteger' safra.id %}"
+   class="block w-full border border-slate-300 text-slate-600 text-center rounded-xl py-3 font-semibold mt-3 text-sm">
+  Quero me proteger
 </a>
 {% endblock %}
