@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% block conteudo %}
+
 <div class="flex justify-between items-center mb-4">
-  <h1 class="font-display text-xl font-bold text-green-800">Vendas — {{ safra }}</h1>
+  <div>
+    <h1 class="font-display text-xl font-bold text-green-800">Vendas</h1>
+    <p class="text-xs text-slate-500">{{ safra }}</p>
+  </div>
   <button hx-get="{% url 'vendas:nova' safra.id %}"
           hx-target="#venda-form-container"
           hx-swap="innerHTML"
-          class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
-    + Nova
+          class="bg-green-700 hover:bg-green-800 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+    + Nova venda
   </button>
 </div>
+
 <div id="venda-form-container"></div>
+
 {% include "vendas/_lista.html" %}
 {% endblock %}

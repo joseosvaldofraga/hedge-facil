@@ -1,18 +1,32 @@
 <div id="lista-vendas">
   {% for venda in vendas %}
-  <div class="bg-white rounded-lg p-4 mb-3 shadow-sm border border-slate-100">
-    <div class="flex justify-between">
-      <span class="font-semibold">{{ venda.contraparte }}</span>
-      <span class="text-green-700 font-bold">R$ {{ venda.preco_por_saca }}</span>
+  <div class="bg-white rounded-xl p-4 mb-3 shadow-sm border border-slate-100">
+    <div class="flex justify-between items-start mb-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="font-semibold text-slate-800 text-sm">{{ venda.contraparte }}</span>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full
+          {% if venda.tipo == 'opcao_b3' %}bg-purple-100 text-purple-700
+          {% elif venda.tipo == 'futuro_b3' %}bg-blue-100 text-blue-700
+          {% elif venda.tipo == 'cpr' %}bg-amber-100 text-amber-700
+          {% elif venda.tipo == 'termo' %}bg-teal-100 text-teal-700
+          {% else %}bg-slate-100 text-slate-600{% endif %}">
+          {{ venda.get_tipo_display }}
+        </span>
+      </div>
+      <span class="font-display font-bold text-green-700 text-base">R$ {{ venda.preco_por_saca }}</span>
     </div>
-    <div class="text-sm text-slate-500 mt-1">
-      {{ venda.sacas }} sc · {{ venda.get_tipo_display }} · {{ venda.data_negociacao }}
+    <div class="flex justify-between text-xs text-slate-500">
+      <span>{{ venda.sacas }} sc · {{ venda.data_negociacao }}</span>
+      <span class="font-medium text-slate-600">= R$ {{ venda.receita }}</span>
     </div>
-    <div class="flex gap-2 mt-2">
+    {% if venda.observacao %}
+    <p class="text-xs text-slate-400 mt-1.5 italic">{{ venda.observacao }}</p>
+    {% endif %}
+    <div class="flex gap-2 mt-3 pt-2 border-t border-slate-50">
       <button hx-get="{% url 'vendas:editar' venda.id %}"
               hx-target="#venda-form-container"
               hx-swap="innerHTML"
-              class="text-xs text-blue-600 border border-blue-300 rounded px-2 py-1">
+              class="text-xs text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg px-3 py-1.5 transition-colors">
         Editar
       </button>
       <button hx-post="{% url 'vendas:deletar' venda.id %}"
@@ -20,12 +34,16 @@
               hx-swap="outerHTML"
               hx-confirm="Deletar esta venda?"
               hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              class="text-xs text-red-600 border border-red-300 rounded px-2 py-1">
+              class="text-xs text-red-500 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5 transition-colors">
         Deletar
       </button>
     </div>
   </div>
   {% empty %}
-  <p class="text-slate-500 text-center py-8">Nenhuma venda lançada ainda.</p>
+  <div class="border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center">
+    <div class="text-4xl mb-3">📋</div>
+    <p class="font-semibold text-slate-600 mb-1">Nenhuma venda lançada</p>
+    <p class="text-sm text-slate-400">Clique em "+ Nova venda" para registrar sua primeira venda.</p>
+  </div>
   {% endfor %}
 </div>

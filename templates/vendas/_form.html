@@ -1,12 +1,73 @@
-<div id="venda-form">
+<div id="venda-form" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-4">
   <h2 class="font-display text-lg font-bold text-green-800 mb-4">{{ form_title }}</h2>
   <form method="post"
         hx-post="{{ action_url }}"
         hx-target="#lista-vendas"
         hx-swap="outerHTML">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="w-full bg-green-700 text-white rounded-lg py-4 font-semibold min-h-[48px]">
+
+    {% if form.non_field_errors %}
+    <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-2 mb-3">
+      <p class="text-red-700 text-xs">{{ form.non_field_errors.0 }}</p>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Tipo de contrato</label>
+        <select name="tipo"
+                class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+          {% for val, label in form.fields.tipo.choices %}
+          {% if val %}
+          <option value="{{ val }}" {% if form.tipo.value == val %}selected{% endif %}>{{ label }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+        {% if form.tipo.errors %}<p class="text-red-600 text-xs mt-1">{{ form.tipo.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Data</label>
+        <input type="date" name="data_negociacao"
+               value="{{ form.data_negociacao.value|default:'' }}"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+        {% if form.data_negociacao.errors %}<p class="text-red-600 text-xs mt-1">{{ form.data_negociacao.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="block text-xs font-medium text-slate-600 mb-1">Contraparte</label>
+      <input type="text" name="contraparte" value="{{ form.contraparte.value|default:'' }}"
+             placeholder="Cargill, Coopercitrus, BB, etc."
+             class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+      {% if form.contraparte.errors %}<p class="text-red-600 text-xs mt-1">{{ form.contraparte.errors.0 }}</p>{% endif %}
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Sacas</label>
+        <input type="number" name="sacas" value="{{ form.sacas.value|default:'' }}"
+               placeholder="0" step="0.01" min="0"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+        {% if form.sacas.errors %}<p class="text-red-600 text-xs mt-1">{{ form.sacas.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-600 mb-1">Preço (R$/sc)</label>
+        <input type="number" name="preco_por_saca" value="{{ form.preco_por_saca.value|default:'' }}"
+               placeholder="0.00" step="0.01" min="0"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+        {% if form.preco_por_saca.errors %}<p class="text-red-600 text-xs mt-1">{{ form.preco_por_saca.errors.0 }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-xs font-medium text-slate-600 mb-1">Observação <span class="text-slate-400 font-normal">(opcional)</span></label>
+      <textarea name="observacao" rows="2"
+                placeholder="Notas sobre a negociação..."
+                class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none">{{ form.observacao.value|default:'' }}</textarea>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl py-3 font-semibold text-sm min-h-[48px] transition-colors">
       <span class="htmx-indicator-hide">Salvar venda</span>
       <span class="htmx-indicator">Salvando...</span>
     </button>

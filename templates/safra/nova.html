@@ -1,22 +1,105 @@
 {% extends "base.html" %}
 {% block conteudo %}
+
 {% if primeiro_acesso %}
-<div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
-  <h2 class="font-display text-lg font-bold text-green-800 mb-3">Bem-vindo ao HedgeFácil!</h2>
-  <ol class="space-y-2 text-sm text-green-900">
-    <li><span class="font-bold text-green-700">1.</span> Cadastre sua safra</li>
-    <li><span class="font-bold text-green-700">2.</span> Lance suas vendas</li>
-    <li><span class="font-bold text-green-700">3.</span> Veja seu painel</li>
-  </ol>
+<div class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-2xl p-5 mb-6">
+  <h2 class="font-display text-lg font-bold text-green-800 mb-4">Bem-vindo ao HedgeFácil</h2>
+  <div class="space-y-3">
+    <div class="flex items-start gap-3">
+      <span class="flex-shrink-0 w-6 h-6 rounded-full bg-green-700 text-white text-xs flex items-center justify-center font-bold">1</span>
+      <div>
+        <p class="text-sm font-semibold text-green-900">Cadastre sua safra</p>
+        <p class="text-xs text-green-700">Produção estimada e custo de produção</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3">
+      <span class="flex-shrink-0 w-6 h-6 rounded-full bg-green-200 text-green-700 text-xs flex items-center justify-center font-bold">2</span>
+      <div>
+        <p class="text-sm font-semibold text-green-800">Lance suas vendas</p>
+        <p class="text-xs text-green-600">Balcão, termo, futuro B3 ou opção</p>
+      </div>
+    </div>
+    <div class="flex items-start gap-3">
+      <span class="flex-shrink-0 w-6 h-6 rounded-full bg-green-200 text-green-700 text-xs flex items-center justify-center font-bold">3</span>
+      <div>
+        <p class="text-sm font-semibold text-green-800">Veja sua posição</p>
+        <p class="text-xs text-green-600">Preço médio, risco e simulações</p>
+      </div>
+    </div>
+  </div>
 </div>
 {% endif %}
+
 <h1 class="font-display text-2xl font-bold text-green-800 mb-6">Nova Safra</h1>
+
 <form method="post" class="space-y-4">
   {% csrf_token %}
-  {{ form.as_p }}
+
+  {% if form.non_field_errors %}
+  <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+    <p class="text-red-700 text-sm">{{ form.non_field_errors.0 }}</p>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Cultura</label>
+      <select name="cultura"
+              class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+        {% for val, label in form.fields.cultura.choices %}
+        {% if val %}
+        <option value="{{ val }}" {% if form.cultura.value == val %}selected{% endif %}>{{ label }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+      {% if form.cultura.errors %}<p class="text-red-600 text-xs mt-1">{{ form.cultura.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Ano safra</label>
+      <input type="text" name="ano_safra" value="{{ form.ano_safra.value|default:'' }}"
+             placeholder="Ex: 2025/26"
+             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+      {% if form.ano_safra.errors %}<p class="text-red-600 text-xs mt-1">{{ form.ano_safra.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Produção estimada (sc)</label>
+      <input type="number" name="producao_estimada_sacas"
+             value="{{ form.producao_estimada_sacas.value|default:'' }}"
+             placeholder="Ex: 3000" step="0.01" min="0"
+             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+      {% if form.producao_estimada_sacas.errors %}<p class="text-red-600 text-xs mt-1">{{ form.producao_estimada_sacas.errors.0 }}</p>{% endif %}
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Custo por saca (R$)</label>
+      <input type="number" name="custo_por_saca"
+             value="{{ form.custo_por_saca.value|default:'' }}"
+             placeholder="Ex: 80.00" step="0.01" min="0"
+             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+      {% if form.custo_por_saca.errors %}<p class="text-red-600 text-xs mt-1">{{ form.custo_por_saca.errors.0 }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Cidade <span class="text-slate-400 font-normal">(opcional)</span></label>
+      <input type="text" name="cidade" value="{{ form.cidade.value|default:'' }}"
+             placeholder="Ex: Sorriso"
+             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-slate-700 mb-1.5">Estado <span class="text-slate-400 font-normal">(opcional)</span></label>
+      <input type="text" name="estado" value="{{ form.estado.value|default:'' }}"
+             placeholder="MT" maxlength="2"
+             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+    </div>
+  </div>
+
   <button type="submit"
-          class="w-full bg-green-700 text-white rounded-lg py-4 font-semibold min-h-[48px]">
-    Salvar Safra
+          class="w-full bg-green-700 hover:bg-green-800 text-white rounded-xl py-4 font-semibold min-h-[52px] transition-colors mt-2">
+    Cadastrar safra
   </button>
 </form>
 {% endblock %}
