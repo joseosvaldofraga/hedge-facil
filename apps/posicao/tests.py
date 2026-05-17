@@ -16,13 +16,25 @@ class PainelViewTestCase(TestCase):
         )
         self.client.force_login(self.produtor)
         self.patcher = patch(
-            "apps.posicao.services._buscar_cotacao_yfinance",
-            return_value=(Decimal("130.00"), Decimal("0")),
+            "apps.posicao.views.get_cotacao_com_variacao",
+            return_value={
+                "cotacao": Decimal("130.00"), "variacao_pct": Decimal("0"),
+                "variacao_abs": Decimal("0"), "cambio": Decimal("5.80"), "fonte": "CME/B3",
+            },
         )
+        self.patcher2 = patch("apps.posicao.views.get_historico_cotacao", return_value=[])
         self.patcher.start()
+        self.patcher2.start()
 
     def tearDown(self):
         self.patcher.stop()
+        self.patcher2.stop()
+
+    def _cria_safra(self, cultura="soja", ano="2025/26", ativa=True):
+        return Safra.objects.create(
+            produtor=self.produtor, cultura=cultura, ano_safra=ano,
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"), ativa=ativa,
+        )
 
     def test_painel_requer_login(self):
         self.client.logout()
@@ -34,51 +46,30 @@ class PainelViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_painel_com_safra_retorna_200(self):
-        Safra.objects.create(
-            produtor=self.produtor,
-            cultura="soja",
-            ano_safra="2025/26",
-            producao_estimada_sacas=Decimal("1000"),
-            custo_por_saca=Decimal("80"),
-        )
+        self._cria_safra()
         response = self.client.get(reverse("posicao:painel"))
         self.assertEqual(response.status_code, 200)
 
     def test_painel_contexto_tem_posicao(self):
-        Safra.objects.create(
-            produtor=self.produtor,
-            cultura="soja",
-            ano_safra="2025/26",
-            producao_estimada_sacas=Decimal("1000"),
-            custo_por_saca=Decimal("80"),
-        )
+        self._cria_safra()
         response = self.client.get(reverse("posicao:painel"))
-        self.assertIn("posicao", response.context)
+        self.assertIn("items", response.context)
+        self.assertIn("posicao", response.context["items"][0])
 
     def test_painel_contexto_tem_safra(self):
-        safra = Safra.objects.create(
-            produtor=self.produtor,
-            cultura="soja",
-            ano_safra="2025/26",
-            producao_estimada_sacas=Decimal("1000"),
-            custo_por_saca=Decimal("80"),
-        )
+        safra = self._cria_safra()
         response = self.client.get(reverse("posicao:painel"))
-        self.assertEqual(response.context["safra"], safra)
+        self.assertEqual(response.context["items"][0]["safra"], safra)
 
     def test_painel_nao_mostra_safra_de_outro_produtor(self):
         outro = Produtor.objects.create_user(username="outro", email="outro@test.com")
         Safra.objects.create(
-            produtor=outro,
-            cultura="milho",
-            ano_safra="2025/26",
-            producao_estimada_sacas=Decimal("500"),
-            custo_por_saca=Decimal("60"),
+            produtor=outro, cultura="milho", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("500"), custo_por_saca=Decimal("60"),
         )
         response = self.client.get(reverse("posicao:painel"))
-        # No safra for current user -> 200 with safra=None (no redirect anymore)
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.context["safra"])
+        self.assertEqual(len(response.context["items"]), 0)
 
 
 class CotacaoAtualTestCase(TestCase):
@@ -240,30 +231,34 @@ class PainelRiscoViewTestCase(TestCase):
             username="risco_view", email="riscoview@test.com", password="senha123"
         )
         Safra.objects.create(
-            produtor=self.produtor,
-            cultura="soja",
-            ano_safra="2025/26",
-            producao_estimada_sacas=Decimal("1000"),
-            custo_por_saca=Decimal("80"),
+            produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
         )
         self.client.force_login(self.produtor)
         self.patcher = patch(
-            "apps.posicao.services._buscar_cotacao_yfinance",
-            return_value=(Decimal("130.00"), Decimal("0")),
+            "apps.posicao.views.get_cotacao_com_variacao",
+            return_value={
+                "cotacao": Decimal("130.00"), "variacao_pct": Decimal("0"),
+                "variacao_abs": Decimal("0"), "cambio": Decimal("5.80"), "fonte": "CME/B3",
+            },
         )
+        self.patcher2 = patch("apps.posicao.views.get_historico_cotacao", return_value=[])
         self.patcher.start()
+        self.patcher2.start()
 
     def tearDown(self):
         self.patcher.stop()
+        self.patcher2.stop()
 
     def test_painel_contexto_tem_risco(self):
         response = self.client.get(reverse("posicao:painel"))
-        self.assertIn("risco", response.context)
+        self.assertIn("items", response.context)
+        self.assertIn("risco", response.context["items"][0])
 
     def test_painel_risco_e_instancia_de_risco_safra(self):
         from apps.posicao.services import RiscoSafra
         response = self.client.get(reverse("posicao:painel"))
-        self.assertIsInstance(response.context["risco"], RiscoSafra)
+        self.assertIsInstance(response.context["items"][0]["risco"], RiscoSafra)
 
 
 class CotacaoRealTestCase(TestCase):
@@ -330,3 +325,56 @@ class CotacaoRealTestCase(TestCase):
             mock.return_value = (Decimal("132.50"), Decimal("1.20"))
             response = self.client.get(reverse("posicao:painel"))
         self.assertIn("historico_json", response.context)
+
+
+class PainelMultiSafraTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="multi_user", email="multi@test.com", password="senha123"
+        )
+        self.client.force_login(self.produtor)
+        self.patcher = patch(
+            "apps.posicao.views.get_cotacao_com_variacao",
+            return_value={
+                "cotacao": Decimal("130.00"), "variacao_pct": Decimal("0"),
+                "variacao_abs": Decimal("0"), "cambio": Decimal("5.80"), "fonte": "CME/B3",
+            },
+        )
+        self.patcher2 = patch("apps.posicao.views.get_historico_cotacao", return_value=[])
+        self.patcher.start()
+        self.patcher2.start()
+
+    def tearDown(self):
+        self.patcher.stop()
+        self.patcher2.stop()
+
+    def _cria_safra(self, cultura, ano, ativa=True):
+        return Safra.objects.create(
+            produtor=self.produtor, cultura=cultura, ano_safra=ano,
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"), ativa=ativa,
+        )
+
+    def test_painel_exibe_todas_safras_ativas(self):
+        self._cria_safra("soja", "2025/26")
+        self._cria_safra("milho", "2025/26")
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertEqual(len(response.context["items"]), 2)
+
+    def test_painel_consolida_receita_e_exposicao(self):
+        self._cria_safra("soja", "2025/26")
+        self._cria_safra("milho", "2025/26")
+        response = self.client.get(reverse("posicao:painel"))
+        # receita_total = 0 (sem vendas), exposicao_total = 2000 sc × R$130
+        self.assertEqual(response.context["receita_total"], Decimal("0"))
+        self.assertEqual(response.context["exposicao_total"], Decimal("260000.00"))
+
+    def test_painel_sem_safras_exibe_cta(self):
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertTrue(response.context["sem_safras"])
+
+    def test_painel_safras_inativas_em_secao_separada(self):
+        self._cria_safra("soja", "2025/26", ativa=True)
+        self._cria_safra("milho", "2024/25", ativa=False)
+        response = self.client.get(reverse("posicao:painel"))
+        self.assertEqual(len(response.context["items"]), 1)
+        self.assertEqual(response.context["safras_inativas"].count(), 1)
