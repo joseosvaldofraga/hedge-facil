@@ -24,6 +24,18 @@ class Safra(models.Model):
     cidade = models.CharField(max_length=100, blank=True)
     estado = models.CharField(max_length=2, blank=True)
     ativa = models.BooleanField(default=True)
+    total_insumos_brl = models.DecimalField(
+        max_digits=14, decimal_places=2, null=True, blank=True,
+        help_text="Custo total de insumos da safra (R$)",
+    )
+    pct_insumos_dolar = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, default=Decimal("0"),
+        help_text="% do custo de insumos atrelado ao dólar (0–100)",
+    )
+    preco_referencia_local = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Preço local informado pelo produtor (cooperativa/trader), R$/sc",
+    )
     criada_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -36,3 +48,9 @@ class Safra(models.Model):
     @property
     def custo_total(self) -> Decimal:
         return self.producao_estimada_sacas * self.custo_por_saca
+
+    @property
+    def insumos_por_saca(self) -> Decimal:
+        if self.total_insumos_brl and self.producao_estimada_sacas > 0:
+            return (self.total_insumos_brl / self.producao_estimada_sacas).quantize(Decimal("0.01"))
+        return Decimal("0")

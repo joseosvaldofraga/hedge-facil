@@ -155,3 +155,34 @@ class SafraAtivarViewTestCase(TestCase):
         )
         url = reverse("safra:ativar", args=[safra_outro.id])
         self.assertEqual(self.client.post(url).status_code, 404)
+
+
+class SafraInsumoBaseTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="insumo_user", email="insumo@test.com", password="senha123"
+        )
+
+    def test_insumos_por_saca_calcula_corretamente(self):
+        safra = Safra.objects.create(
+            produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
+            total_insumos_brl=Decimal("50000"),
+        )
+        self.assertEqual(safra.insumos_por_saca, Decimal("50.00"))
+
+    def test_insumos_por_saca_sem_dados_retorna_zero(self):
+        safra = Safra.objects.create(
+            produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
+        )
+        self.assertEqual(safra.insumos_por_saca, Decimal("0"))
+
+    def test_preco_referencia_local_opcional(self):
+        safra = Safra.objects.create(
+            produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
+            preco_referencia_local=Decimal("125.50"),
+        )
+        safra.refresh_from_db()
+        self.assertEqual(safra.preco_referencia_local, Decimal("125.50"))
