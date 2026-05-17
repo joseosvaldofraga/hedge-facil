@@ -3,6 +3,9 @@ from django.test import TestCase
 from django.urls import reverse
 from apps.contas.models import Produtor
 from apps.safra.models import Safra
+from unittest.mock import patch, MagicMock
+import pandas as pd
+from django.core.cache import cache
 
 
 class HedgeViewsTestCase(TestCase):
@@ -232,3 +235,85 @@ class EstrategiasViewTestCase(TestCase):
         import json
         pontos = json.loads(response.context["pontos_json"])
         self.assertEqual(len(pontos), 31)
+
+
+class GetChainOpcoesTestCase(TestCase):
+
+    def setUp(self):
+        cache.clear()
+
+    def _puts_df(self):
+        return pd.DataFrame({
+            'strike':            [1200.0, 1300.0, 1400.0],
+            'lastPrice':         [5.0,    10.0,   20.0],
+            'bid':               [4.8,    9.8,    19.8],
+            'volume':            [100.0,  200.0,  0.0],
+            'openInterest':      [500.0,  1000.0, 0.0],
+            'impliedVolatility': [0.28,   0.32,   0.35],
+        })
+
+    def _mock_ticker(self):
+        ticker = MagicMock()
+        ticker.options = ['2026-03-21', '2026-05-16']
+        chain = MagicMock()
+        chain.puts = self._puts_df()
+        ticker.option_chain.return_value = chain
+        return ticker
+
+    def _brl_df(self):
+        return pd.DataFrame(
+            {'Close': [5.75, 5.80]},
+            index=pd.to_datetime(['2026-03-19', '2026-03-20'])
+        )
+
+    @patch('apps.posicao.services.get_cotacao_com_variacao')
+    @patch('yfinance.download')
+    @patch('yfinance.Ticker')
+    def test_get_chain_opcoes_retorna_estrutura_esperada(self, mock_ticker_cls, mock_download, mock_cotacao):
+        mock_ticker_cls.return_value = self._mock_ticker()
+        mock_download.return_value = self._brl_df()
+        mock_cotacao.return_value = {
+            'cotacao': Decimal('130.00'), 'variacao_pct': Decimal('0'),
+            'variacao_abs': Decimal('0'), 'fonte': 'test',
+        }
+        from apps.posicao.services import get_chain_opcoes
+        result = get_chain_opcoes('soja', '')
+        self.assertIn('puts', result)
+        self.assertIn('vencimentos', result)
+        self.assertIn('cotacao_brl', result)
+        self.assertIn('cambio', result)
+        self.assertIn('vencimento', result)
+        self.assertIsInstance(result['puts'], list)
+        self.assertEqual(result['vencimentos'], ['2026-03-21', '2026-05-16'])
+
+    @patch('apps.posicao.services.get_cotacao_com_variacao')
+    @patch('yfinance.download')
+    @patch('yfinance.Ticker')
+    def test_get_chain_opcoes_converte_para_brl(self, mock_ticker_cls, mock_download, mock_cotacao):
+        mock_ticker_cls.return_value = self._mock_ticker()
+        mock_download.return_value = self._brl_df()
+        mock_cotacao.return_value = {
+            'cotacao': Decimal('130.00'), 'variacao_pct': Decimal('0'),
+            'variacao_abs': Decimal('0'), 'fonte': 'test',
+        }
+        from apps.posicao.services import get_chain_opcoes, _SACA_POR_BUSHEL
+        result = get_chain_opcoes('soja', '2026-03-21')
+        # strike 1200 cents/bushel, cambio 5.80
+        # strike_brl = (1200 * _SACA_POR_BUSHEL * 5.80 / 100).quantize('0.01')
+        expected = (Decimal('1200') * _SACA_POR_BUSHEL * Decimal('5.80') / 100).quantize(Decimal('0.01'))
+        self.assertEqual(result['puts'][0]['strike_brl'], expected)
+
+    @patch('apps.posicao.services.get_cotacao_com_variacao')
+    @patch('yfinance.download')
+    @patch('yfinance.Ticker')
+    def test_get_chain_opcoes_filtra_sem_liquidez(self, mock_ticker_cls, mock_download, mock_cotacao):
+        mock_ticker_cls.return_value = self._mock_ticker()
+        mock_download.return_value = self._brl_df()
+        mock_cotacao.return_value = {
+            'cotacao': Decimal('130.00'), 'variacao_pct': Decimal('0'),
+            'variacao_abs': Decimal('0'), 'fonte': 'test',
+        }
+        from apps.posicao.services import get_chain_opcoes
+        result = get_chain_opcoes('soja', '2026-03-21')
+        # 3ª linha da _puts_df tem volume=0 E openInterest=0 → deve ser filtrada
+        self.assertEqual(len(result['puts']), 2)
