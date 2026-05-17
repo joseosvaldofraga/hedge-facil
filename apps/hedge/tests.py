@@ -373,3 +373,63 @@ class BlackScholesDeltaThetaTestCase(TestCase):
         from apps.hedge.services import black_scholes_theta_put_dia
         theta = black_scholes_theta_put_dia(Decimal('130'), Decimal('130'), Decimal('0.5'))
         self.assertLess(theta, 0)
+
+
+class OpcoesViewTestCase(TestCase):
+
+    def setUp(self):
+        cache.clear()
+        self.produtor = Produtor.objects.create_user(
+            username='ze2', email='ze2@test.com', password='senha123'
+        )
+        self.safra = Safra.objects.create(
+            produtor=self.produtor,
+            cultura='soja',
+            ano_safra='2025/26',
+            producao_estimada_sacas=Decimal('1000'),
+            custo_por_saca=Decimal('115'),
+        )
+        self.client.force_login(self.produtor)
+        self.chain_mock = {
+            'puts': [
+                {'strike_brl': Decimal('103.50'), 'premio_brl': Decimal('1.80'), 'volume': 100, 'open_interest': 500,  'iv': 28.0},
+                {'strike_brl': Decimal('115.00'), 'premio_brl': Decimal('3.40'), 'volume': 200, 'open_interest': 1000, 'iv': 32.0},
+                {'strike_brl': Decimal('130.00'), 'premio_brl': Decimal('7.20'), 'volume': 80,  'open_interest': 400,  'iv': 38.0},
+            ],
+            'vencimentos': ['2026-03-21', '2026-05-16'],
+            'vencimento':  '2026-03-21',
+            'cotacao_brl': Decimal('130.00'),
+            'cambio':      Decimal('5.80'),
+        }
+
+    @patch('apps.hedge.views.get_chain_opcoes')
+    def test_opcoes_retorna_200(self, mock_chain):
+        mock_chain.return_value = self.chain_mock
+        response = self.client.get(reverse('hedge:opcoes', args=[self.safra.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_opcoes_requer_login(self):
+        self.client.logout()
+        response = self.client.get(reverse('hedge:opcoes', args=[self.safra.id]))
+        self.assertEqual(response.status_code, 302)
+
+    @patch('apps.hedge.views.get_chain_opcoes')
+    def test_opcoes_cultura_sem_suporte_mostra_aviso(self, mock_chain):
+        safra_cana = Safra.objects.create(
+            produtor=self.produtor, cultura='cana',
+            ano_safra='2025/26', producao_estimada_sacas=Decimal('500'),
+            custo_por_saca=Decimal('60'),
+        )
+        mock_chain.return_value = {
+            'puts': [], 'vencimentos': [], 'vencimento': '',
+            'cotacao_brl': Decimal('0'), 'cambio': Decimal('1'),
+        }
+        response = self.client.get(reverse('hedge:opcoes', args=[safra_cana.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['cultura_disponivel'])
+
+    @patch('apps.hedge.views.get_chain_opcoes')
+    def test_opcoes_vencimento_default_e_primeiro_disponivel(self, mock_chain):
+        mock_chain.return_value = self.chain_mock
+        response = self.client.get(reverse('hedge:opcoes', args=[self.safra.id]))
+        self.assertEqual(response.context['vencimento'], '2026-03-21')
