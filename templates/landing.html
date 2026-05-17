@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HedgeFácil — Gestão de hedge para o produtor rural</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { display: ['Syne', 'sans-serif'] },
+          colors: {
+            forest: {
+              950: '#050d05', 900: '#0a1a0a', 800: '#0f2810',
+              700: '#163d16', 600: '#1e5220',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, body { font-family: 'DM Sans', sans-serif; }
+    .font-display { font-family: 'Syne', sans-serif !important; }
+
+    /* ---- scroll reveal ---- */
+    .reveal { opacity: 0; transform: translateY(32px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    .d1 { transition-delay: .1s; } .d2 { transition-delay: .2s; }
+    .d3 { transition-delay: .3s; } .d4 { transition-delay: .4s; }
+
+    /* ---- grain overlay ---- */
+    .grain { position: relative; }
+    .grain::after {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none; z-index: 1;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: .035;
+    }
+
+    /* ---- glass ---- */
+    .glass {
+      background: rgba(255,255,255,.07);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    /* ---- floating card ---- */
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .float { animation: float 7s ease-in-out infinite; }
+
+    /* ---- ticker ---- */
+    @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    .ticker-track { display:flex; width:max-content; animation: ticker 45s linear infinite; }
+    .ticker-track:hover { animation-play-state:paused; }
+
+    /* ---- price pulse ---- */
+    @keyframes glow { 0%,100%{opacity:1} 50%{opacity:.65} }
+    .price-live { animation: glow 2.5s ease-in-out infinite; }
+
+    /* ---- gradient text ---- */
+    .grad { background: linear-gradient(135deg,#4ade80 0%,#22c55e 50%,#f59e0b 100%);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    /* ---- CTA button ---- */
+    .btn-glow { transition: transform .2s, box-shadow .2s; }
+    .btn-glow:hover { transform:translateY(-2px); box-shadow:0 14px 36px rgba(34,197,94,.45); }
+
+    /* ---- feature card ---- */
+    .feat-card { transition: transform .3s, border-color .3s, box-shadow .3s; }
+    .feat-card:hover { transform:translateY(-5px); border-color:rgba(34,197,94,.35); box-shadow:0 24px 48px rgba(0,0,0,.08); }
+
+    /* ---- slider ---- */
+    input[type=range] { -webkit-appearance:none; width:100%; height:5px; border-radius:4px; background:rgba(255,255,255,.18); outline:none; cursor:pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#22c55e; cursor:pointer; box-shadow:0 0 0 4px rgba(34,197,94,.25); transition:box-shadow .2s; }
+    input[type=range]::-webkit-slider-thumb:hover { box-shadow:0 0 0 8px rgba(34,197,94,.35); }
+
+    /* ---- nav on scroll ---- */
+    .nav-solid { background:rgba(10,26,10,.96) !important; backdrop-filter:blur(16px); box-shadow:0 1px 0 rgba(255,255,255,.06); }
+
+    /* ---- step connector (desktop) ---- */
+    @media (min-width:768px) {
+      .step-item:not(:last-child) { position:relative; }
+      .step-item:not(:last-child)::after {
+        content:''; position:absolute; top:28px; left:calc(50% + 52px);
+        width:calc(100% - 104px); height:2px;
+        background:linear-gradient(90deg,#22c55e,transparent);
+      }
+    }
+
+    /* hero diagonal separator */
+    .hero-clip { clip-path: polygon(0 0, 100% 0, 100% 92%, 0 100%); }
+
+    /* scroll indicator */
+    @keyframes bounce-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+    .bounce { animation: bounce-y 1.8s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-white text-slate-900 overflow-x-hidden">
+
+<!-- ═══════════════════  NAV  ═══════════════════ -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4">
+  <div class="max-w-6xl mx-auto px-6 flex items-center justify-between">
+    <a href="/" class="font-display font-bold text-xl text-white tracking-tight">HedgeFácil</a>
+    <div class="flex items-center gap-3">
+      <a href="{% url 'contas:login' %}"
+         class="text-sm text-green-300 hover:text-white transition-colors px-3 py-1.5">
+        Entrar
+      </a>
+      <a href="{% url 'contas:registro' %}"
+         class="btn-glow bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-5 py-2 rounded-xl">
+        Começar grátis
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════  HERO  ═══════════════════ -->
+<section class="grain hero-clip min-h-screen flex items-center relative overflow-hidden"
+         style="background: radial-gradient(ellipse at 25% 60%, #1a4020 0%, #050d05 65%);">
+  <div class="relative z-10 max-w-6xl mx-auto px-6 pt-24 pb-32 w-full">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+
+      <!-- Left: headline -->
+      <div>
+        <div class="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 mb-6 text-xs font-semibold text-green-300 tracking-wide uppercase">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-400 price-live"></span>
+          Cotação CME em tempo real
+        </div>
+
+        <h1 class="font-display font-bold text-5xl md:text-6xl lg:text-7xl text-white leading-[1.05] mb-6">
+          Seu preço.<br>
+          <span class="grad">Sua regra.</span><br>
+          Sua margem.
+        </h1>
+
+        <p class="text-green-200 text-lg md:text-xl leading-relaxed mb-8 max-w-lg">
+          A plataforma de gestão de hedge para o produtor rural brasileiro.
+          Acompanhe sua posição, simule estratégias e decida com clareza — do celular ao escritório.
+        </p>
+
+        <div class="flex flex-wrap gap-3 mb-10">
+          <a href="{% url 'contas:registro' %}"
+             class="btn-glow bg-green-500 hover:bg-green-400 text-white font-bold px-8 py-4 rounded-2xl text-base">
+            Começar grátis agora
+          </a>
+          <a href="#simulacao"
+             class="glass text-green-200 hover:text-white font-semibold px-8 py-4 rounded-2xl text-base transition-colors">
+            Ver simulação ↓
+          </a>
+        </div>
+
+        <div class="flex flex-wrap gap-5 text-sm text-green-400">
+          <span class="flex items-center gap-1.5">✓ Sem cartão de crédito</span>
+          <span class="flex items-center gap-1.5">✓ Dados CME ao vivo</span>
+          <span class="flex items-center gap-1.5">✓ Multi-safra</span>
+        </div>
+      </div>
+
+      <!-- Right: floating position card -->
+      <div class="flex justify-center md:justify-end">
+        <div class="float w-full max-w-xs">
+
+          <!-- Price widget -->
+          <div class="glass rounded-2xl p-5 mb-3">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs text-green-400 font-semibold uppercase tracking-wide">Soja CME · BRL</span>
+              <span class="text-xs text-green-400 price-live">● LIVE</span>
+            </div>
+            <div class="flex items-baseline gap-2 mb-3">
+              <span class="font-display text-4xl font-bold text-white" id="heroPrice">R$ 128,50</span>
+              <span class="text-sm font-semibold text-green-400" id="heroVar">▲ +1,4%</span>
+            </div>
+            <div style="height:72px">
+              <canvas id="heroChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Position card -->
+          <div class="glass rounded-2xl p-5">
+            <p class="text-xs text-green-400 font-semibold uppercase tracking-wide mb-3">Soja 2025/26 · 3.000 sc</p>
+            <div class="mb-3">
+              <div class="flex justify-between text-xs text-green-200 mb-1.5">
+                <span>65% vendido</span>
+                <span>1.050 sc expostas</span>
+              </div>
+              <div class="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-2 bg-green-500 rounded-full" style="width:65%"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="bg-white/05 rounded-xl p-3">
+                <p class="text-xs text-green-400">Receita travada</p>
+                <p class="font-bold text-white text-sm">R$ 250.575</p>
+              </div>
+              <div class="bg-white/05 rounded-xl p-3">
+                <p class="text-xs text-amber-400">Em risco</p>
+                <p class="font-bold text-amber-300 text-sm">R$ 134.925</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 bounce text-green-500 opacity-60">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M19 9l-7 7-7-7"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  TICKER  ═══════════════════ -->
+<div class="bg-forest-900 border-y border-green-900/60 py-3 overflow-hidden">
+  <div class="ticker-track select-none">
+    {% for _ in "12" %}
+    <div class="flex items-center gap-8 px-8 whitespace-nowrap">
+      <span class="text-sm font-medium text-green-300">SOJA CME <span class="text-white font-bold">R$ 128,50</span> <span class="text-green-400">▲ +1,4%</span></span>
+      <span class="text-green-800">|</span>
+      <span class="text-sm font-medium text-green-300">MILHO CME <span class="text-white font-bold">R$ 68,20</span> <span class="text-red-400">▼ −0,8%</span></span>
+      <span class="text-green-800">|</span>
+      <span class="text-sm font-medium text-green-300">DÓLAR <span class="text-white font-bold">R$ 5,12</span> <span class="text-green-400">▲ +0,3%</span></span>
+      <span class="text-green-800">|</span>
+      <span class="text-sm font-medium text-green-300">SOJA PARANAGUÁ <span class="text-white font-bold">R$ 121,80</span> <span class="text-red-400">▼ −0,5%</span></span>
+      <span class="text-green-800">|</span>
+      <span class="text-sm font-medium text-green-300">SOJA MATO GROSSO <span class="text-white font-bold">R$ 118,40</span> <span class="text-green-400">▲ +0,2%</span></span>
+      <span class="text-green-800">|</span>
+      <span class="text-sm font-medium text-green-300">CDI <span class="text-white font-bold">14,75% a.a.</span></span>
+      <span class="text-green-800">|</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══════════════════  NÚMEROS  ═══════════════════ -->
+<section class="py-16 bg-white border-b border-slate-100">
+  <div class="max-w-4xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+    <div class="reveal">
+      <p class="font-display font-bold text-4xl text-green-700 mb-1">
+        <span class="counter" data-target="200">0</span>bi
+      </p>
+      <p class="text-sm text-slate-500">R$ em grãos negociados/ano no Brasil</p>
+    </div>
+    <div class="reveal d1">
+      <p class="font-display font-bold text-4xl text-green-700 mb-1">
+        <span class="counter" data-target="177">0</span>
+      </p>
+      <p class="text-sm text-slate-500">testes automatizados de qualidade</p>
+    </div>
+    <div class="reveal d2">
+      <p class="font-display font-bold text-4xl text-green-700 mb-1">
+        <span class="counter" data-target="4">0</span>
+      </p>
+      <p class="text-sm text-slate-500">estratégias de hedge simuladas</p>
+    </div>
+    <div class="reveal d3">
+      <p class="font-display font-bold text-4xl text-green-700 mb-1">
+        100%
+      </p>
+      <p class="text-sm text-slate-500">gratuito para começar</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  PROBLEMA  ═══════════════════ -->
+<section class="py-24 bg-slate-50">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <p class="text-green-600 text-sm font-semibold uppercase tracking-widest mb-3 reveal">O problema</p>
+      <h2 class="font-display font-bold text-4xl md:text-5xl text-slate-900 leading-tight mb-6 reveal d1">
+        O produtor negocia bilhões.<br>
+        <span class="text-green-700">Mas decide na intuição.</span>
+      </h2>
+      <p class="text-slate-500 text-lg max-w-2xl mx-auto reveal d2">
+        Sem visibilidade de posição, preço médio ou risco, cada negociação é um chute.
+        O mercado não perdoa quem chega tarde.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="feat-card bg-white rounded-2xl p-6 border border-slate-200 reveal">
+        <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-2xl mb-4">❌</div>
+        <h3 class="font-display font-bold text-lg text-slate-800 mb-2">Sem visão de posição</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Você sabe quanto vendeu no mês passado, mas não sabe seu preço médio nem quanto ainda está exposto ao mercado.</p>
+      </div>
+      <div class="feat-card bg-white rounded-2xl p-6 border border-slate-200 reveal d1">
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl mb-4">⏱</div>
+        <h3 class="font-display font-bold text-lg text-slate-800 mb-2">Decisão tardia</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Sem cenários simulados, você só reage quando o preço já caiu. O hedge eficiente se faz antes do mercado te surpreender.</p>
+      </div>
+      <div class="feat-card bg-white rounded-2xl p-6 border border-slate-200 reveal d2">
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl mb-4">📊</div>
+        <h3 class="font-display font-bold text-lg text-slate-800 mb-2">Ferramentas complexas</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">As plataformas existentes foram feitas para traders, não para produtores. Terminologia difícil, interface confusa.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  FEATURES  ═══════════════════ -->
+<section class="py-24 bg-white" id="funcionalidades">
+  <div class="max-w-5xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <p class="text-green-600 text-sm font-semibold uppercase tracking-widest mb-3 reveal">A solução</p>
+      <h2 class="font-display font-bold text-4xl md:text-5xl text-slate-900 mb-4 reveal d1">
+        Tudo que você precisa.<br>Nada que você não precisa.
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-5">
+
+      <div class="feat-card border border-slate-200 rounded-2xl p-7 reveal">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-green-700 flex items-center justify-center text-2xl flex-shrink-0">📊</div>
+          <div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Painel de posição em tempo real</h3>
+            <p class="text-slate-500 leading-relaxed">Veja todas as suas safras ativas com preço médio ponderado, % vendido, receita travada e exposição aberta. Atualizado com cotação CME ao vivo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feat-card border border-slate-200 rounded-2xl p-7 reveal d1">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center text-2xl flex-shrink-0">📉</div>
+          <div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Análise de cenários de preço</h3>
+            <p class="text-slate-500 leading-relaxed">Simule o impacto de alta e queda de preços no seu resultado. Saiba exatamente quanto você ganha ou perde em cada cenário antes de decidir.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feat-card border border-slate-200 rounded-2xl p-7 reveal d2">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-2xl flex-shrink-0">🛡</div>
+          <div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Simulador de estratégias com opções</h3>
+            <p class="text-slate-500 leading-relaxed">Compara Put, Collar e Futuro com prêmios calculados por Black-Scholes. Gráfico P&L interativo. Dados reais do mercado CME.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="feat-card border border-slate-200 rounded-2xl p-7 reveal d3">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center text-2xl flex-shrink-0">💰</div>
+          <div>
+            <h3 class="font-display font-bold text-xl text-slate-900 mb-2">Simulador CPR vs venda spot</h3>
+            <p class="text-slate-500 leading-relaxed">Calcule a taxa embutida de qualquer CPR e compare com CDI. Veja o breakeven e decida se vale travar agora ou esperar o mercado subir.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-5 feat-card border border-green-200 bg-green-50 rounded-2xl p-7 reveal">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-xl bg-green-700 flex items-center justify-center text-2xl flex-shrink-0">🌾</div>
+        <div>
+          <h3 class="font-display font-bold text-xl text-green-900 mb-2">Multi-safra e base local</h3>
+          <p class="text-green-700 leading-relaxed">Gerencie várias safras ao mesmo tempo. Monitore a base local (diferença CME vs cooperativa) e veja se suas vendas já cobrem o custo de insumos dolarizados.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  SIMULAÇÃO INTERATIVA  ═══════════════════ -->
+<section id="simulacao" class="grain py-24 overflow-hidden"
+         style="background: radial-gradient(ellipse at 70% 40%, #1a4020 0%, #050d05 70%);">
+  <div class="relative z-10 max-w-5xl mx-auto px-6">
+    <div class="text-center mb-14">
+      <p class="text-green-400 text-sm font-semibold uppercase tracking-widest mb-3 reveal">Simulação ao vivo</p>
+      <h2 class="font-display font-bold text-4xl md:text-5xl text-white mb-4 reveal d1">
+        Veja sua posição agora.
+      </h2>
+      <p class="text-green-300 text-lg reveal d2">Ajuste os parâmetros e veja os números mudando em tempo real.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8 items-start reveal">
+
+      <!-- Sliders -->
+      <div class="glass rounded-2xl p-6 space-y-7">
+
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-semibold text-green-300">Produção estimada</label>
+            <span class="text-white font-bold" id="lbl-sacas">3.000 sc</span>
+          </div>
+          <input type="range" id="sl-sacas" min="500" max="20000" step="100" value="3000"
+                 oninput="simCalc()">
+          <div class="flex justify-between text-xs text-green-600 mt-1">
+            <span>500 sc</span><span>20.000 sc</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-semibold text-green-300">Cotação atual (R$/sc)</label>
+            <span class="text-white font-bold" id="lbl-cotacao">R$ 128</span>
+          </div>
+          <input type="range" id="sl-cotacao" min="80" max="220" step="1" value="128"
+                 oninput="simCalc()">
+          <div class="flex justify-between text-xs text-green-600 mt-1">
+            <span>R$ 80</span><span>R$ 220</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-semibold text-green-300">Custo de produção (R$/sc)</label>
+            <span class="text-white font-bold" id="lbl-custo">R$ 85</span>
+          </div>
+          <input type="range" id="sl-custo" min="40" max="180" step="1" value="85"
+                 oninput="simCalc()">
+          <div class="flex justify-between text-xs text-green-600 mt-1">
+            <span>R$ 40</span><span>R$ 180</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-semibold text-green-300">Já vendido</label>
+            <span class="text-white font-bold" id="lbl-pct">40%</span>
+          </div>
+          <input type="range" id="sl-pct" min="0" max="100" step="5" value="40"
+                 oninput="simCalc()">
+          <div class="flex justify-between text-xs text-green-600 mt-1">
+            <span>0%</span><span>100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="space-y-4">
+
+        <!-- Progress bar -->
+        <div class="glass rounded-2xl p-5">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-green-300 font-medium" id="out-pct-label">40% vendido</span>
+            <span class="text-white font-semibold" id="out-sacas-exp">1.800 sc expostas</span>
+          </div>
+          <div class="h-3 bg-white/10 rounded-full overflow-hidden">
+            <div class="h-3 bg-green-500 rounded-full transition-all duration-500" id="bar-prog" style="width:40%"></div>
+          </div>
+        </div>
+
+        <!-- Metric cards -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="glass rounded-xl p-4 text-center">
+            <p class="text-xs text-green-400 mb-1">Receita travada</p>
+            <p class="font-display font-bold text-2xl text-white" id="out-travada">R$ 61.440</p>
+          </div>
+          <div class="glass rounded-xl p-4 text-center">
+            <p class="text-xs text-amber-400 mb-1">Exposição aberta</p>
+            <p class="font-display font-bold text-2xl text-amber-300" id="out-exposta">R$ 92.160</p>
+          </div>
+          <div class="glass rounded-xl p-4 text-center">
+            <p class="text-xs text-green-400 mb-1">Margem/saca</p>
+            <p class="font-display font-bold text-2xl" id="out-margem">R$ 43</p>
+          </div>
+          <div class="glass rounded-xl p-4 text-center">
+            <p class="text-xs text-green-400 mb-1">Resultado estimado</p>
+            <p class="font-display font-bold text-2xl text-white" id="out-resultado">R$ 129.000</p>
+          </div>
+        </div>
+
+        <!-- Verdict -->
+        <div class="glass rounded-xl p-4" id="sim-veredicto">
+          <p class="text-sm font-semibold text-green-300" id="sim-txt">✓ Posição lucrativa. Margem positiva em todos os cenários vendidos.</p>
+        </div>
+
+        <a href="{% url 'contas:registro' %}"
+           class="btn-glow block w-full bg-green-500 hover:bg-green-400 text-white font-bold text-center py-4 rounded-2xl text-base">
+          Ver minha posição real →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  COMO FUNCIONA  ═══════════════════ -->
+<section class="py-24 bg-white">
+  <div class="max-w-4xl mx-auto px-6">
+    <div class="text-center mb-16">
+      <p class="text-green-600 text-sm font-semibold uppercase tracking-widest mb-3 reveal">3 passos</p>
+      <h2 class="font-display font-bold text-4xl md:text-5xl text-slate-900 reveal d1">
+        Simples de usar.<br>Poderoso por dentro.
+      </h2>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-8">
+      <div class="step-item text-center reveal">
+        <div class="w-14 h-14 rounded-2xl bg-green-700 text-white font-display font-bold text-2xl flex items-center justify-center mx-auto mb-5">1</div>
+        <h3 class="font-display font-bold text-xl text-slate-900 mb-3">Cadastre sua safra</h3>
+        <p class="text-slate-500 leading-relaxed">Produção estimada, custo por saca e localização. Pronto em menos de 2 minutos.</p>
+      </div>
+      <div class="step-item text-center reveal d1">
+        <div class="w-14 h-14 rounded-2xl bg-green-700 text-white font-display font-bold text-2xl flex items-center justify-center mx-auto mb-5">2</div>
+        <h3 class="font-display font-bold text-xl text-slate-900 mb-3">Lance suas vendas</h3>
+        <p class="text-slate-500 leading-relaxed">Balcão, termo, futuro B3, CPR ou opção. O sistema calcula o preço médio e a posição automaticamente.</p>
+      </div>
+      <div class="step-item text-center reveal d2">
+        <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white font-display font-bold text-2xl flex items-center justify-center mx-auto mb-5">3</div>
+        <h3 class="font-display font-bold text-xl text-slate-900 mb-3">Decida com clareza</h3>
+        <p class="text-slate-500 leading-relaxed">Veja cenários, simule estratégias com opções e saiba exatamente quando e quanto vender.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  CTA FINAL  ═══════════════════ -->
+<section class="grain py-28 overflow-hidden"
+         style="background: radial-gradient(ellipse at 50% 80%, #1a4020 0%, #050d05 65%);">
+  <div class="relative z-10 max-w-3xl mx-auto px-6 text-center">
+    <p class="text-green-400 text-sm font-semibold uppercase tracking-widest mb-4 reveal">Comece hoje</p>
+    <h2 class="font-display font-bold text-5xl md:text-6xl text-white leading-tight mb-6 reveal d1">
+      Seu próximo preço<br>
+      <span class="grad">merece decisão.</span>
+    </h2>
+    <p class="text-green-200 text-xl mb-10 reveal d2">
+      Gratuito. Sem cartão. Começa em 2 minutos.
+    </p>
+    <div class="flex flex-wrap justify-center gap-4 reveal d3">
+      <a href="{% url 'contas:registro' %}"
+         class="btn-glow bg-green-500 hover:bg-green-400 text-white font-bold px-10 py-4 rounded-2xl text-lg">
+        Criar conta grátis
+      </a>
+      <a href="{% url 'contas:login' %}"
+         class="glass text-green-200 hover:text-white font-semibold px-10 py-4 rounded-2xl text-lg transition-colors">
+        Já tenho conta
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════  FOOTER  ═══════════════════ -->
+<footer class="bg-forest-950 border-t border-green-900/40 py-10">
+  <div class="max-w-5xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div>
+      <p class="font-display font-bold text-lg text-white mb-1">HedgeFácil</p>
+      <p class="text-xs text-green-600">Gestão de hedge para o produtor rural brasileiro.</p>
+    </div>
+    <div class="flex items-center gap-6 text-sm text-green-600">
+      <a href="{% url 'contas:login' %}" class="hover:text-green-400 transition-colors">Entrar</a>
+      <a href="{% url 'contas:registro' %}" class="hover:text-green-400 transition-colors">Criar conta</a>
+    </div>
+    <p class="text-xs text-green-800">© 2025 HedgeFácil. Dados CME via yfinance.</p>
+  </div>
+</footer>
+
+<!-- ═══════════════════  SCRIPTS  ═══════════════════ -->
+<script>
+/* ---------- NAV on scroll ---------- */
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 30) navbar.classList.add('nav-solid');
+  else navbar.classList.remove('nav-solid');
+}, { passive: true });
+
+/* ---------- Scroll reveal ---------- */
+const revealEls = document.querySelectorAll('.reveal');
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.12 });
+revealEls.forEach(el => revealObs.observe(el));
+
+/* ---------- Counter animation ---------- */
+const counters = document.querySelectorAll('.counter');
+const counterObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const target = parseInt(el.dataset.target);
+    const duration = 1600;
+    const step = target / (duration / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = Math.floor(current).toLocaleString('pt-BR');
+      if (current >= target) clearInterval(timer);
+    }, 16);
+    counterObs.unobserve(el);
+  });
+}, { threshold: 0.5 });
+counters.forEach(c => counterObs.observe(c));
+
+/* ---------- Hero sparkline ---------- */
+(function() {
+  const prices = [118,119,121,120,122,125,124,126,127,125,126,128,129,128,128.5];
+  const ctx = document.getElementById('heroChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: prices.map((_, i) => i),
+      datasets: [{
+        data: prices,
+        borderColor: '#22c55e',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.4,
+        fill: true,
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 72);
+          g.addColorStop(0, 'rgba(34,197,94,0.25)');
+          g.addColorStop(1, 'rgba(34,197,94,0)');
+          return g;
+        },
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false } },
+      animation: { duration: 0 },
+    }
+  });
+})();
+
+/* ---------- Hero price random walk ---------- */
+(function() {
+  const priceEl = document.getElementById('heroPrice');
+  const varEl = document.getElementById('heroVar');
+  let price = 128.50;
+  const base = 128.50;
+  setInterval(() => {
+    price += (Math.random() - 0.49) * 0.15;
+    price = Math.max(125, Math.min(132, price));
+    const diff = price - base;
+    const pct = (diff / base * 100);
+    priceEl.textContent = 'R$ ' + price.toFixed(2).replace('.', ',');
+    if (diff >= 0) {
+      varEl.textContent = '▲ +' + pct.toFixed(1).replace('.', ',') + '%';
+      varEl.className = 'text-sm font-semibold text-green-400';
+    } else {
+      varEl.textContent = '▼ ' + pct.toFixed(1).replace('.', ',') + '%';
+      varEl.className = 'text-sm font-semibold text-red-400';
+    }
+  }, 1800);
+})();
+
+/* ---------- Simulation calculator ---------- */
+function fmt(v) {
+  return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
+}
+function simCalc() {
+  const sacas = parseInt(document.getElementById('sl-sacas').value);
+  const cotacao = parseInt(document.getElementById('sl-cotacao').value);
+  const custo = parseInt(document.getElementById('sl-custo').value);
+  const pct = parseInt(document.getElementById('sl-pct').value);
+
+  document.getElementById('lbl-sacas').textContent = sacas.toLocaleString('pt-BR') + ' sc';
+  document.getElementById('lbl-cotacao').textContent = 'R$ ' + cotacao;
+  document.getElementById('lbl-custo').textContent = 'R$ ' + custo;
+  document.getElementById('lbl-pct').textContent = pct + '%';
+
+  const sacas_vendidas = sacas * pct / 100;
+  const sacas_exp = sacas - sacas_vendidas;
+  const travada = sacas_vendidas * cotacao;
+  const exposta = sacas_exp * cotacao;
+  const margem = cotacao - custo;
+  const resultado = sacas * margem;
+
+  document.getElementById('out-pct-label').textContent = pct + '% vendido';
+  document.getElementById('out-sacas-exp').textContent = Math.round(sacas_exp).toLocaleString('pt-BR') + ' sc expostas';
+  document.getElementById('bar-prog').style.width = pct + '%';
+  document.getElementById('out-travada').textContent = fmt(travada);
+  document.getElementById('out-exposta').textContent = fmt(exposta);
+
+  const margemEl = document.getElementById('out-margem');
+  margemEl.textContent = (margem >= 0 ? 'R$ ' : '−R$ ') + Math.abs(Math.round(margem)).toLocaleString('pt-BR');
+  margemEl.className = 'font-display font-bold text-2xl ' + (margem >= 0 ? 'text-green-400' : 'text-red-400');
+
+  document.getElementById('out-resultado').textContent = fmt(resultado);
+
+  const txt = document.getElementById('sim-txt');
+  const box = document.getElementById('sim-veredicto');
+  if (margem >= 20) {
+    txt.textContent = '✓ Posição saudável. Margem confortável acima do custo.';
+    txt.className = 'text-sm font-semibold text-green-300';
+  } else if (margem >= 0) {
+    txt.textContent = '⚠ Margem apertada. Considere travar mais sacas para garantir resultado.';
+    txt.className = 'text-sm font-semibold text-amber-300';
+  } else {
+    txt.textContent = '✗ Preço abaixo do custo de produção. Estratégia de proteção urgente.';
+    txt.className = 'text-sm font-semibold text-red-400';
+  }
+}
+simCalc();
+</script>
+</body>
+</html>

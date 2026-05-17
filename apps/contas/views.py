@@ -5,6 +5,12 @@ from django.views.decorators.http import require_POST
 from .forms import RegisterForm
 
 
+def landing_view(request):
+    if request.user.is_authenticated:
+        return redirect("posicao:painel")
+    return render(request, "landing.html")
+
+
 def login_view(request):
     form = AuthenticationForm(data=request.POST or None)
     if request.method == "POST" and form.is_valid():
