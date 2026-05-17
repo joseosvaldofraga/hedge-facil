@@ -274,7 +274,7 @@ class GetChainOpcoesTestCase(TestCase):
         mock_download.return_value = self._brl_df()
         mock_cotacao.return_value = {
             'cotacao': Decimal('130.00'), 'variacao_pct': Decimal('0'),
-            'variacao_abs': Decimal('0'), 'fonte': 'test',
+            'variacao_abs': Decimal('0'), 'cambio': Decimal('5.80'), 'fonte': 'test',
         }
         from apps.posicao.services import get_chain_opcoes
         result = get_chain_opcoes('soja', '')
@@ -294,7 +294,7 @@ class GetChainOpcoesTestCase(TestCase):
         mock_download.return_value = self._brl_df()
         mock_cotacao.return_value = {
             'cotacao': Decimal('130.00'), 'variacao_pct': Decimal('0'),
-            'variacao_abs': Decimal('0'), 'fonte': 'test',
+            'variacao_abs': Decimal('0'), 'cambio': Decimal('5.80'), 'fonte': 'test',
         }
         from apps.posicao.services import get_chain_opcoes, _SACA_POR_BUSHEL
         result = get_chain_opcoes('soja', '2026-03-21')
@@ -311,7 +311,7 @@ class GetChainOpcoesTestCase(TestCase):
         mock_download.return_value = self._brl_df()
         mock_cotacao.return_value = {
             'cotacao': Decimal('130.00'), 'variacao_pct': Decimal('0'),
-            'variacao_abs': Decimal('0'), 'fonte': 'test',
+            'variacao_abs': Decimal('0'), 'cambio': Decimal('5.80'), 'fonte': 'test',
         }
         from apps.posicao.services import get_chain_opcoes
         result = get_chain_opcoes('soja', '2026-03-21')

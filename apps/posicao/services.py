@@ -110,8 +110,8 @@ def calcular_risco(posicao: PosicaoSafra, safra: Safra, cotacao: Decimal, vendas
 _SACA_POR_BUSHEL = Decimal("60") / Decimal("27.2155")  # ≈ 2.2046
 
 
-def _buscar_cotacao_yfinance() -> tuple[Decimal, Decimal]:
-    """Retorna (cotacao_brl_saca, variacao_pct). Lança exceção se falhar."""
+def _buscar_cotacao_yfinance() -> tuple[Decimal, Decimal, Decimal]:
+    """Retorna (cotacao_brl_saca, variacao_pct, cambio). Lança exceção se falhar."""
     import yfinance as yf
     tickers = yf.download(["ZS=F", "USDBRL=X"], period="5d", progress=False, auto_adjust=True)
     close = tickers["Close"]
@@ -126,21 +126,22 @@ def _buscar_cotacao_yfinance() -> tuple[Decimal, Decimal]:
     if len(zs) >= 2:
         ontem = Decimal(str(float(zs.iloc[-2])))
         variacao = (preco_cents - ontem) / ontem * 100
-    return cotacao.quantize(Decimal("0.01")), variacao.quantize(Decimal("0.01"))
+    return cotacao.quantize(Decimal("0.01")), variacao.quantize(Decimal("0.01")), brl_rate.quantize(Decimal("0.0001"))
 
 
 def get_cotacao_com_variacao() -> dict:
-    """Retorna {cotacao, variacao_pct, variacao_abs, fonte}."""
+    """Retorna {cotacao, variacao_pct, variacao_abs, cambio, fonte}."""
     cached = cache.get("cotacao_soja_completa")
     if cached is not None:
         return cached
     try:
-        cotacao, variacao_pct = _buscar_cotacao_yfinance()
+        cotacao, variacao_pct, cambio = _buscar_cotacao_yfinance()
         variacao_abs = (cotacao * variacao_pct / 100).quantize(Decimal("0.01"))
         resultado = {
             "cotacao": cotacao,
             "variacao_pct": variacao_pct,
             "variacao_abs": variacao_abs,
+            "cambio": cambio,
             "fonte": "CME/B3",
         }
         cache.set("cotacao_soja_completa", resultado, 3600)
@@ -151,6 +152,7 @@ def get_cotacao_com_variacao() -> dict:
             "cotacao": cotacao,
             "variacao_pct": Decimal("0"),
             "variacao_abs": Decimal("0"),
+            "cambio": Decimal("1"),
             "fonte": "estimado",
         }
 
@@ -185,7 +187,7 @@ def get_cotacao_atual() -> Decimal:
     if cached is not None:
         return Decimal(str(cached))
     try:
-        cotacao, _ = _buscar_cotacao_yfinance()
+        cotacao, _, _cambio = _buscar_cotacao_yfinance()
         cache.set("cotacao_soja_atual", str(cotacao), 3600)
         return cotacao
     except Exception:
@@ -199,12 +201,12 @@ TICKER_CME = {
 }
 
 _RESULTADO_VAZIO = {
-    'puts': [], 'vencimentos': [], 'vencimento': '',
-    'cotacao_brl': Decimal('0'), 'cambio': Decimal('1'),
+    "puts": [], "vencimentos": [], "vencimento": "",
+    "cotacao_brl": Decimal("0"), "cambio": Decimal("1"),
 }
 
 
-def get_chain_opcoes(cultura: str, vencimento: str = '') -> dict:
+def get_chain_opcoes(cultura: str, vencimento: str = "") -> dict:
     """
     Retorna chain de puts para a cultura, convertida para BRL/saca.
     Estrutura: {puts, vencimentos, vencimento, cotacao_brl, cambio}
@@ -215,70 +217,62 @@ def get_chain_opcoes(cultura: str, vencimento: str = '') -> dict:
     if cultura not in TICKER_CME:
         return _RESULTADO_VAZIO.copy()
 
-    # Câmbio
-    cambio_cached = cache.get('chain_cambio_brl')
-    if cambio_cached is not None:
-        cambio = Decimal(str(cambio_cached))
-    else:
-        import yfinance as yf
-        brl = yf.download("USDBRL=X", period="3d", progress=False, auto_adjust=True)
-        brl_close = brl['Close'].dropna()
-        if brl_close.empty:
-            return _RESULTADO_VAZIO.copy()
-        cambio = Decimal(str(float(brl_close.iloc[-1])))
-        cache.set('chain_cambio_brl', str(cambio), 3600)
+    try:
+        # Cotação atual em BRL e câmbio — reusar a chamada já cacheada
+        cotacao_info = get_cotacao_com_variacao()
+        cotacao_brl = cotacao_info["cotacao"]
+        cambio = cotacao_info.get("cambio", Decimal("1"))
 
-    # Cotação atual em BRL
-    cotacao_brl = get_cotacao_com_variacao()['cotacao']
+        # Lista de vencimentos disponíveis (cacheada separadamente)
+        venc_cache_key = f"vencimentos_cme_{cultura}"
+        vencimentos = cache.get(venc_cache_key)
+        if vencimentos is None:
+            import yfinance as yf
+            ticker = yf.Ticker(TICKER_CME[cultura])
+            vencimentos = list(ticker.options)
+            if not vencimentos:
+                return {**_RESULTADO_VAZIO.copy(), "cotacao_brl": cotacao_brl, "cambio": cambio}
+            cache.set(venc_cache_key, vencimentos, 3600)
 
-    # Lista de vencimentos disponíveis (cacheada separadamente)
-    venc_cache_key = f'vencimentos_cme_{cultura}'
-    vencimentos = cache.get(venc_cache_key)
-    if vencimentos is None:
+        venc_real = vencimento if vencimento in vencimentos else vencimentos[0]
+
+        # Puts para o vencimento selecionado
+        puts_cache_key = f"chain_puts_{cultura}_{venc_real}"
+        puts_cached = cache.get(puts_cache_key)
+        if puts_cached is not None:
+            return {
+                "puts": puts_cached, "vencimentos": vencimentos,
+                "vencimento": venc_real, "cotacao_brl": cotacao_brl, "cambio": cambio,
+            }
+
         import yfinance as yf
         ticker = yf.Ticker(TICKER_CME[cultura])
-        vencimentos = list(ticker.options)
-        if not vencimentos:
-            return {**_RESULTADO_VAZIO.copy(), 'cotacao_brl': cotacao_brl, 'cambio': cambio}
-        cache.set(venc_cache_key, vencimentos, 3600)
+        chain = ticker.option_chain(venc_real)
+        puts_df = chain.puts.fillna({"volume": 0, "openInterest": 0, "impliedVolatility": 0.35})
 
-    venc_real = vencimento if vencimento in vencimentos else vencimentos[0]
+        # Filtrar liquidez
+        puts_df = puts_df[(puts_df["volume"] > 0) | (puts_df["openInterest"] > 0)]
 
-    # Puts para o vencimento selecionado
-    puts_cache_key = f'chain_puts_{cultura}_{venc_real}'
-    puts_cached = cache.get(puts_cache_key)
-    if puts_cached is not None:
+        # Conversão cents/bushel → BRL/saca
+        fator = _SACA_POR_BUSHEL * cambio / 100
+
+        puts = []
+        for _, row in puts_df.iterrows():
+            strike_cents = Decimal(str(float(row.get("strike", 0))))
+            premio_cents = Decimal(str(float(row.get("lastPrice", 0) or row.get("bid", 0) or 0)))
+            iv_decimal = float(row.get("impliedVolatility", 0.35) or 0.35)
+            puts.append({
+                "strike_brl":    (strike_cents * fator).quantize(Decimal("0.01")),
+                "premio_brl":    (premio_cents * fator).quantize(Decimal("0.01")),
+                "volume":        int(float(row.get("volume", 0) or 0)),
+                "open_interest": int(float(row.get("openInterest", 0) or 0)),
+                "iv":            round(iv_decimal * 100, 1),
+            })
+
+        cache.set(puts_cache_key, puts, 3600)
         return {
-            'puts': puts_cached, 'vencimentos': vencimentos,
-            'vencimento': venc_real, 'cotacao_brl': cotacao_brl, 'cambio': cambio,
+            "puts": puts, "vencimentos": vencimentos,
+            "vencimento": venc_real, "cotacao_brl": cotacao_brl, "cambio": cambio,
         }
-
-    import yfinance as yf
-    ticker = yf.Ticker(TICKER_CME[cultura])
-    chain = ticker.option_chain(venc_real)
-    puts_df = chain.puts.fillna({'volume': 0, 'openInterest': 0, 'impliedVolatility': 0.35})
-
-    # Filtrar liquidez
-    puts_df = puts_df[(puts_df['volume'] > 0) | (puts_df['openInterest'] > 0)]
-
-    # Conversão cents/bushel → BRL/saca
-    fator = _SACA_POR_BUSHEL * cambio / 100
-
-    puts = []
-    for _, row in puts_df.iterrows():
-        strike_cents = Decimal(str(float(row['strike'])))
-        premio_cents = Decimal(str(float(row.get('lastPrice', 0) or row.get('bid', 0) or 0)))
-        iv_decimal = float(row.get('impliedVolatility', 0.35) or 0.35)
-        puts.append({
-            'strike_brl':    (strike_cents * fator).quantize(Decimal('0.01')),
-            'premio_brl':    (premio_cents * fator).quantize(Decimal('0.01')),
-            'volume':        int(float(row.get('volume', 0) or 0)),
-            'open_interest': int(float(row.get('openInterest', 0) or 0)),
-            'iv':            round(iv_decimal * 100, 1),
-        })
-
-    cache.set(puts_cache_key, puts, 3600)
-    return {
-        'puts': puts, 'vencimentos': vencimentos,
-        'vencimento': venc_real, 'cotacao_brl': cotacao_brl, 'cambio': cambio,
-    }
+    except Exception:
+        return _RESULTADO_VAZIO.copy()
