@@ -351,6 +351,10 @@ class SelecionarCardsTestCase(TestCase):
         self.assertEqual(card_total['nome'], 'Proteção Total')
         self.assertEqual(card_total['strike_brl'], Decimal('130.00'))
 
+    def test_selecionar_cards_lista_vazia_retorna_vazia(self):
+        from apps.hedge.services import _selecionar_cards
+        self.assertEqual(_selecionar_cards([], Decimal('115'), Decimal('130')), [])
+
 
 class BlackScholesDeltaThetaTestCase(TestCase):
 

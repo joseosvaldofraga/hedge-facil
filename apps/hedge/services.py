@@ -1,6 +1,6 @@
 from decimal import Decimal
 from dataclasses import dataclass
-from math import log, sqrt, exp, erf
+from math import log, sqrt, exp, erf, pi
 
 
 @dataclass
@@ -134,7 +134,6 @@ def black_scholes_theta_put_dia(
     r: float = 0.105, sigma: float = 0.35
 ) -> float:
     """Theta diário do put em R$/saca. Negativo = o put perde valor a cada dia."""
-    from math import pi
     S_f, K_f, T_f = float(S), float(K), float(T_anos)
     if T_f <= 0 or sigma <= 0 or S_f <= 0 or K_f <= 0:
         return 0.0
