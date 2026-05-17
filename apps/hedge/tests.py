@@ -444,3 +444,33 @@ class OpcoesViewTestCase(TestCase):
         # lucro_q = 1000 * 7.80 = 7800 >= 0 → "você ainda lucra"
         card_total = cards[2]
         self.assertIn('ainda lucra', card_total['cenario_queda'])
+
+
+class SimuladorCprTestCase(TestCase):
+    def setUp(self):
+        self.produtor = Produtor.objects.create_user(
+            username="cpr_user", email="cpr@test.com", password="senha123"
+        )
+        self.safra = Safra.objects.create(
+            produtor=self.produtor, cultura="soja", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("1000"), custo_por_saca=Decimal("80"),
+        )
+        self.client.force_login(self.produtor)
+
+    def test_cpr_retorna_200(self):
+        with patch("apps.hedge.views.get_cotacao_atual", return_value=Decimal("130.00")):
+            response = self.client.get(reverse("hedge:cpr", args=[self.safra.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_cpr_requer_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("hedge:cpr", args=[self.safra.id]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_cpr_passa_cotacao_e_cdi_para_template(self):
+        with patch("apps.hedge.views.get_cotacao_atual", return_value=Decimal("130.00")):
+            response = self.client.get(reverse("hedge:cpr", args=[self.safra.id]))
+        self.assertIn("cotacao_atual", response.context)
+        self.assertIn("cdi_anual", response.context)
+        self.assertAlmostEqual(response.context["cotacao_atual"], 130.0)
+        self.assertAlmostEqual(response.context["cdi_anual"], 14.75)

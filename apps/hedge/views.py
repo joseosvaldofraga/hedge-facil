@@ -46,6 +46,7 @@ def hedge_redirect(request):
 
 
 @login_required
+
 def estrategias(request, safra_id):
     safra = get_object_or_404(Safra, id=safra_id, produtor=request.user)
     cotacao_base = get_cotacao_atual()
@@ -207,4 +208,15 @@ def opcoes(request, safra_id):
         'cotacao_brl':        cotacao,
         'card_destaque':      card_destaque,
         'has_greeks':         has_greeks,
+    })
+
+
+@login_required
+def simulador_cpr(request, safra_id):
+    safra = get_object_or_404(Safra, id=safra_id, produtor=request.user)
+    cotacao = get_cotacao_atual()
+    return render(request, "hedge/cpr.html", {
+        "safra": safra,
+        "cotacao_atual": float(cotacao),
+        "cdi_anual": 14.75,
     })
