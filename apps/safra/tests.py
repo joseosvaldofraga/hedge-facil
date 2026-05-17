@@ -186,3 +186,19 @@ class SafraInsumoBaseTestCase(TestCase):
         )
         safra.refresh_from_db()
         self.assertEqual(safra.preco_referencia_local, Decimal("125.50"))
+
+    def test_insumos_por_saca_com_producao_zero_retorna_zero(self):
+        safra = Safra(
+            produtor=self.produtor, cultura="soja", ano_safra="2026/27",
+            producao_estimada_sacas=Decimal("0"), custo_por_saca=Decimal("80"),
+            total_insumos_brl=Decimal("50000"),
+        )
+        self.assertEqual(safra.insumos_por_saca, Decimal("0"))
+
+    def test_pct_insumos_dolar_default_e_zero(self):
+        safra = Safra.objects.create(
+            produtor=self.produtor, cultura="milho", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("500"), custo_por_saca=Decimal("60"),
+        )
+        safra.refresh_from_db()
+        self.assertEqual(safra.pct_insumos_dolar, Decimal("0"))
