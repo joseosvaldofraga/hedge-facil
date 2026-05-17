@@ -433,3 +433,14 @@ class OpcoesViewTestCase(TestCase):
         mock_chain.return_value = self.chain_mock
         response = self.client.get(reverse('hedge:opcoes', args=[self.safra.id]))
         self.assertEqual(response.context['vencimento'], '2026-03-21')
+
+    @patch('apps.hedge.views.get_chain_opcoes')
+    def test_opcoes_cards_tem_cenario_queda(self, mock_chain):
+        mock_chain.return_value = self.chain_mock
+        response = self.client.get(reverse('hedge:opcoes', args=[self.safra.id]))
+        cards = response.context['cards']
+        # "Proteção Total" (strike=130, prêmio=7.20) com 1000 sacas expostas
+        # queda 25%: max(130*0.75=97.50, 130) - 115 - 7.20 = 130 - 122.20 = 7.80/saca
+        # lucro_q = 1000 * 7.80 = 7800 >= 0 → "você ainda lucra"
+        card_total = cards[2]
+        self.assertIn('ainda lucra', card_total['cenario_queda'])

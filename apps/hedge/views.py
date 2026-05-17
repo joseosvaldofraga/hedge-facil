@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from apps.safra.models import Safra
 from apps.posicao.services import calcular_posicao, get_cotacao_atual, get_historico_cotacao, get_chain_opcoes
 from .services import (
-    calcular_volatilidade_historica, simular_cenarios, simular_estrategias,
+    simular_cenarios, simular_estrategias,
     _selecionar_cards, black_scholes_delta_put, black_scholes_theta_put_dia,
 )
 
@@ -140,10 +140,10 @@ def opcoes(request, safra_id):
         card['custo_total_safra'] = float(posicao.sacas_a_vender * card['premio_brl'])
         preco_queda = cotacao * Decimal('0.75')
         lucro_q = posicao.sacas_a_vender * (max(preco_queda, card['strike_brl']) - custo - card['premio_brl'])
-        if lucro_q >= Decimal('-50'):
-            card['cenario_queda'] = 'você fica praticamente no zero'
-        elif lucro_q >= 0:
+        if lucro_q >= 0:
             card['cenario_queda'] = f'você ainda lucra R$ {int(lucro_q):,}'.replace(',', '.')
+        elif lucro_q >= Decimal('-50'):
+            card['cenario_queda'] = 'você fica praticamente no zero'
         else:
             card['cenario_queda'] = f'você perde R$ {int(abs(lucro_q)):,}'.replace(',', '.')
 
