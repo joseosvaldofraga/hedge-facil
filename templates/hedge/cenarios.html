@@ -2,7 +2,8 @@
 {% block conteudo %}
 
 <div class="mb-5">
-  <h1 class="font-display text-2xl font-bold text-green-800 mb-0.5">Cenários de Preço</h1>
+  <a href="{% url 'posicao:painel' %}" class="text-sm text-green-700 hover:underline">← Painel</a>
+  <h1 class="font-display text-2xl font-bold text-green-800 mt-2">Cenários de Preço</h1>
   <p class="text-sm text-slate-500">{{ posicao.sacas_a_vender }} sc a vender · cotação R$ {{ preco_atual }}/sc</p>
 </div>
 
@@ -47,21 +48,20 @@
 </div>
 {% endfor %}
 
-<a href="{% url 'hedge:estrategias' safra.id %}"
-   class="block w-full bg-green-700 hover:bg-green-800 text-white text-center rounded-xl py-4 font-semibold mt-4 min-h-[48px] transition-colors">
-  Simular estratégias com opções
-</a>
-<a href="{% url 'hedge:proteger' safra.id %}"
+<div class="grid grid-cols-2 gap-3 mt-5">
+  <a href="{% url 'hedge:estrategias' safra.id %}"
+     class="block text-center bg-green-700 hover:bg-green-800 text-white rounded-xl py-3 font-semibold text-sm transition-colors">
+    Estratégias com opções
+  </a>
+  <a href="{% url 'hedge:opcoes' safra.id %}"
+     class="block text-center border border-green-700 text-green-700 hover:bg-green-50 rounded-xl py-3 font-semibold text-sm transition-colors">
+    Opções reais CME
+  </a>
+</div>
+
+<a href="{% url 'hedge:cpr' safra.id %}"
    class="block w-full border border-slate-300 text-slate-600 text-center rounded-xl py-3 font-semibold mt-3 text-sm">
-  Quero me proteger
+  Simular CPR vs venda spot
 </a>
 
-    <!-- Botão para opções reais -->
-    <div class="mt-6 text-center pb-4">
-      <a href="{% url 'hedge:opcoes' safra.id %}"
-         class="inline-flex items-center gap-2 bg-green-700 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-green-800 transition-colors">
-        Ver Opções Disponíveis no Mercado →
-      </a>
-      <p class="text-xs text-gray-400 mt-2">Veja os preços reais de proteção disponíveis hoje</p>
-    </div>
 {% endblock %}

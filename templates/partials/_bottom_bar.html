@@ -1,34 +1,42 @@
 {% if user.is_authenticated %}
 {% with ns=request.resolver_match.namespace %}
 <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-2 z-10">
+
   <a href="{% url 'posicao:painel' %}"
-     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg min-w-[56px] {% if ns == 'posicao' %}text-green-700{% else %}text-slate-500{% endif %}">
+     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl min-w-[60px] transition-colors
+            {% if ns == 'posicao' %}bg-green-50 text-green-700{% else %}text-slate-400{% endif %}">
     <span class="text-xl leading-none">📊</span>
-    <span class="text-[10px] font-medium">Posição</span>
+    <span class="text-[10px] {% if ns == 'posicao' %}font-semibold{% else %}font-medium{% endif %}">Posição</span>
   </a>
+
   <a href="{% url 'safra:lista' %}"
-     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg min-w-[56px] {% if ns == 'safra' %}text-green-700{% else %}text-slate-500{% endif %}">
+     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl min-w-[60px] transition-colors
+            {% if ns == 'safra' %}bg-green-50 text-green-700{% else %}text-slate-400{% endif %}">
     <span class="text-xl leading-none">🌾</span>
-    <span class="text-[10px] font-medium">Safras</span>
+    <span class="text-[10px] {% if ns == 'safra' %}font-semibold{% else %}font-medium{% endif %}">Safras</span>
   </a>
+
   {% if safra %}
   <a href="{% url 'vendas:lista' safra.id %}"
-     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg min-w-[56px] {% if ns == 'vendas' %}text-green-700{% else %}text-slate-500{% endif %}">
+     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl min-w-[60px] transition-colors
+            {% if ns == 'vendas' %}bg-green-50 text-green-700{% else %}text-slate-400{% endif %}">
     <span class="text-xl leading-none">📋</span>
-    <span class="text-[10px] font-medium">Vendas</span>
+    <span class="text-[10px] {% if ns == 'vendas' %}font-semibold{% else %}font-medium{% endif %}">Vendas</span>
   </a>
   {% else %}
-  <a href="{% url 'safra:nova' %}"
-     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg min-w-[56px] text-slate-400">
+  <span class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl min-w-[60px] text-slate-300 cursor-not-allowed">
     <span class="text-xl leading-none">📋</span>
     <span class="text-[10px] font-medium">Vendas</span>
-  </a>
+  </span>
   {% endif %}
+
   <a href="{% url 'hedge:redirect' %}"
-     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg min-w-[56px] {% if ns == 'hedge' %}text-green-700{% else %}text-slate-500{% endif %}">
+     class="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl min-w-[60px] transition-colors
+            {% if ns == 'hedge' %}bg-green-50 text-green-700{% else %}text-slate-400{% endif %}">
     <span class="text-xl leading-none">🛡</span>
-    <span class="text-[10px] font-medium">Hedge</span>
+    <span class="text-[10px] {% if ns == 'hedge' %}font-semibold{% else %}font-medium{% endif %}">Hedge</span>
   </a>
+
 </nav>
 {% endwith %}
 {% endif %}

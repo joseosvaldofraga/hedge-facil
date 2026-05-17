@@ -1,50 +1,52 @@
 {% extends "base.html" %}
 {% block conteudo %}
 
-<div class="mb-4">
-  <a href="{% url 'posicao:painel' %}" class="text-sm text-green-600">← Voltar ao painel</a>
-  <h1 class="font-display text-2xl font-bold text-green-800 mt-2">Simulador CPR</h1>
-  <p class="text-sm text-slate-500 mt-1">{{ safra.get_cultura_display }} {{ safra.ano_safra }}</p>
+<div class="mb-5">
+  <a href="{% url 'posicao:painel' %}" class="text-sm text-green-700 hover:underline">← Painel</a>
+  <h1 class="font-display text-xl font-bold text-green-800 mt-2">Simulador CPR</h1>
+  <p class="text-sm text-slate-500 mt-0.5">{{ safra.get_cultura_display }} {{ safra.ano_safra }}</p>
 </div>
 
-<div class="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-slate-100">
-  <h2 class="font-semibold text-slate-700 mb-4">Parâmetros</h2>
+<div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-slate-100">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-4">Parâmetros</h2>
 
   <div class="space-y-4">
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1.5">Cotação spot hoje (R$/sc)</label>
-      <input type="number" id="spotInput" step="0.01" min="0"
-             value="{{ cotacao_atual }}"
-             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-             oninput="calcular()">
-    </div>
-    <div>
-      <label class="block text-sm font-medium text-slate-700 mb-1.5">Preço CPR ofertado (R$/sc)</label>
-      <input type="number" id="cprInput" step="0.01" min="0"
-             value="{{ cotacao_atual }}"
-             class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-             oninput="calcular()">
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Cotação spot hoje (R$/sc)</label>
+        <input type="number" id="spotInput" step="0.01" min="0"
+               value="{{ cotacao_atual }}"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+               oninput="calcular()">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Preço CPR ofertado (R$/sc)</label>
+        <input type="number" id="cprInput" step="0.01" min="0"
+               value="{{ cotacao_atual }}"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+               oninput="calcular()">
+      </div>
     </div>
     <div class="grid grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">Prazo (dias)</label>
         <input type="number" id="prazoInput" step="1" min="1" value="180"
-               class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                oninput="calcular()">
       </div>
       <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">CDI referência (% a.a.)</label>
         <input type="number" id="cdiInput" step="0.01" min="0"
                value="{{ cdi_anual }}"
-               class="w-full border border-slate-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+               class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                oninput="calcular()">
       </div>
     </div>
   </div>
 </div>
 
-<div class="bg-white rounded-2xl p-5 mb-5 shadow-sm border border-slate-100" id="resultado">
-  <h2 class="font-semibold text-slate-700 mb-4">Resultado</h2>
+<div class="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-slate-100" id="resultado">
+  <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-4">Resultado</h2>
 
   <div class="grid grid-cols-2 gap-3 mb-4">
     <div class="bg-green-50 rounded-xl p-3 text-center">
@@ -53,9 +55,9 @@
       <p class="text-xs text-green-600">% ao ano</p>
     </div>
     <div class="bg-slate-50 rounded-xl p-3 text-center">
-      <p class="text-xs text-slate-600">Para ganhar mais que o CDI</p>
+      <p class="text-xs text-slate-600">Preço de breakeven no vencimento</p>
       <p class="font-display text-2xl font-bold text-slate-800" id="breakeven">—</p>
-      <p class="text-xs text-slate-500">R$/sc no vencimento</p>
+      <p class="text-xs text-slate-500">R$/sc (para ganhar mais que o CDI)</p>
     </div>
   </div>
 
@@ -67,9 +69,9 @@
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
-        <tr class="text-xs text-slate-500 border-b">
-          <th class="text-left py-2">Alta do spot</th>
-          <th class="text-right py-2">Spot no vencimento</th>
+        <tr class="text-xs text-slate-500 border-b border-slate-200">
+          <th class="text-left py-2 pr-3">Variação do spot</th>
+          <th class="text-right py-2 pr-3">Spot no vencimento</th>
           <th class="text-right py-2">CPR vale mais?</th>
         </tr>
       </thead>
@@ -78,10 +80,14 @@
   </div>
 </div>
 
-<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 mb-4">
   <p class="font-semibold mb-1">Como interpretar</p>
   <p>A CPR trava o preço agora. Se o mercado subir acima do breakeven, você teria ganho mais esperando. Se cair, a CPR te protege.</p>
 </div>
+
+<a href="{% url 'hedge:estrategias' safra.id %}" class="block w-full border border-slate-300 text-slate-600 text-center rounded-xl py-3 font-semibold text-sm">
+  Ver estratégias com opções
+</a>
 
 <script>
 const VARIACOES = [-20, -10, 0, 10, 20];
@@ -106,7 +112,7 @@ function calcular() {
   if (cprVale) {
     box.className = 'rounded-xl p-4 mb-4 bg-green-50 border border-green-200';
     txt.className = 'text-sm font-semibold text-green-800';
-    txt.textContent = 'CPR vale mais que esperar — taxa de ' + taxaEfetiva.toFixed(2) + '% a.a. supera o CDI de ' + cdi + '% a.a.';
+    txt.textContent = 'CPR vale mais que esperar — taxa de ' + taxaEfetiva.toFixed(2) + '% a.a. supera o CDI de ' + cdi.toFixed(2) + '% a.a.';
   } else {
     box.className = 'rounded-xl p-4 mb-4 bg-amber-50 border border-amber-200';
     txt.className = 'text-sm font-semibold text-amber-800';
@@ -118,11 +124,12 @@ function calcular() {
   VARIACOES.forEach(pct => {
     const spotVenc = spot * (1 + pct / 100);
     const cprGanha = cpr >= spotVenc;
+    const sinal = pct > 0 ? '+' : (pct < 0 ? '' : '±');
     const tr = document.createElement('tr');
     tr.className = 'border-b border-slate-100';
     tr.innerHTML = `
-      <td class="py-2 text-slate-600">+${pct}%</td>
-      <td class="py-2 text-right font-semibold">R$ ${spotVenc.toFixed(2)}</td>
+      <td class="py-2 pr-3 text-slate-600">${sinal}${pct}%</td>
+      <td class="py-2 pr-3 text-right font-semibold">R$ ${spotVenc.toFixed(2)}</td>
       <td class="py-2 text-right">
         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${cprGanha ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}">
           ${cprGanha ? 'Sim' : 'Não'}
@@ -134,5 +141,4 @@ function calcular() {
 
 document.addEventListener('DOMContentLoaded', calcular);
 </script>
-
 {% endblock %}
