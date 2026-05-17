@@ -474,3 +474,15 @@ class SimuladorCprTestCase(TestCase):
         self.assertIn("cdi_anual", response.context)
         self.assertAlmostEqual(response.context["cotacao_atual"], 130.0)
         self.assertAlmostEqual(response.context["cdi_anual"], 14.75)
+
+    def test_cpr_outro_produtor_retorna_404(self):
+        outro = Produtor.objects.create_user(
+            username="cpr_outro", email="cpr_outro@test.com", password="senha123"
+        )
+        safra_outro = Safra.objects.create(
+            produtor=outro, cultura="milho", ano_safra="2025/26",
+            producao_estimada_sacas=Decimal("500"), custo_por_saca=Decimal("60"),
+        )
+        with patch("apps.hedge.views.get_cotacao_atual", return_value=Decimal("130.00")):
+            response = self.client.get(reverse("hedge:cpr", args=[safra_outro.id]))
+        self.assertEqual(response.status_code, 404)
