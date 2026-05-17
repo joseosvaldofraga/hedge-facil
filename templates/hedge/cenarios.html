@@ -55,4 +55,13 @@
    class="block w-full border border-slate-300 text-slate-600 text-center rounded-xl py-3 font-semibold mt-3 text-sm">
   Quero me proteger
 </a>
+
+    <!-- Botão para opções reais -->
+    <div class="mt-6 text-center pb-4">
+      <a href="{% url 'hedge:opcoes' safra.id %}"
+         class="inline-flex items-center gap-2 bg-green-700 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-green-800 transition-colors">
+        Ver Opções Disponíveis no Mercado →
+      </a>
+      <p class="text-xs text-gray-400 mt-2">Veja os preços reais de proteção disponíveis hoje</p>
+    </div>
 {% endblock %}
