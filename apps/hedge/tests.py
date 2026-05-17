@@ -317,3 +317,55 @@ class GetChainOpcoesTestCase(TestCase):
         result = get_chain_opcoes('soja', '2026-03-21')
         # 3ª linha da _puts_df tem volume=0 E openInterest=0 → deve ser filtrada
         self.assertEqual(len(result['puts']), 2)
+
+
+class SelecionarCardsTestCase(TestCase):
+
+    def setUp(self):
+        self.puts = [
+            {'strike_brl': Decimal('103.50'), 'premio_brl': Decimal('1.80'), 'volume': 100, 'open_interest': 500,  'iv': 28.0},
+            {'strike_brl': Decimal('115.00'), 'premio_brl': Decimal('3.40'), 'volume': 200, 'open_interest': 1000, 'iv': 32.0},
+            {'strike_brl': Decimal('120.00'), 'premio_brl': Decimal('5.10'), 'volume': 150, 'open_interest': 800,  'iv': 35.0},
+            {'strike_brl': Decimal('130.00'), 'premio_brl': Decimal('7.20'), 'volume': 80,  'open_interest': 400,  'iv': 38.0},
+        ]
+        self.custo = Decimal('115.00')
+        self.cotacao = Decimal('130.00')
+
+    def test_selecionar_cards_retorna_tres_cards(self):
+        from apps.hedge.services import _selecionar_cards
+        cards = _selecionar_cards(self.puts, self.custo, self.cotacao)
+        self.assertEqual(len(cards), 3)
+
+    def test_card_custo_mais_proximo_do_break_even(self):
+        from apps.hedge.services import _selecionar_cards
+        cards = _selecionar_cards(self.puts, self.custo, self.cotacao)
+        card_custo = cards[1]  # índice 1 = "Proteção do Custo"
+        self.assertEqual(card_custo['nome'], 'Proteção do Custo')
+        self.assertTrue(card_custo['destaque'])
+        self.assertEqual(card_custo['strike_brl'], Decimal('115.00'))
+
+    def test_card_protecao_total_e_atm(self):
+        from apps.hedge.services import _selecionar_cards
+        cards = _selecionar_cards(self.puts, self.custo, self.cotacao)
+        card_total = cards[2]  # índice 2 = "Proteção Total"
+        self.assertEqual(card_total['nome'], 'Proteção Total')
+        self.assertEqual(card_total['strike_brl'], Decimal('130.00'))
+
+
+class BlackScholesDeltaThetaTestCase(TestCase):
+
+    def test_delta_put_esta_entre_menos_um_e_zero(self):
+        from apps.hedge.services import black_scholes_delta_put
+        delta = black_scholes_delta_put(Decimal('130'), Decimal('130'), Decimal('0.5'))
+        self.assertGreaterEqual(delta, -1.0)
+        self.assertLessEqual(delta, 0.0)
+
+    def test_delta_put_atm_proximo_de_menos_meio(self):
+        from apps.hedge.services import black_scholes_delta_put
+        delta = black_scholes_delta_put(Decimal('130'), Decimal('130'), Decimal('0.5'))
+        self.assertAlmostEqual(delta, -0.5, delta=0.15)
+
+    def test_theta_put_e_negativo(self):
+        from apps.hedge.services import black_scholes_theta_put_dia
+        theta = black_scholes_theta_put_dia(Decimal('130'), Decimal('130'), Decimal('0.5'))
+        self.assertLess(theta, 0)

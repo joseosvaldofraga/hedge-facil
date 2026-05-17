@@ -98,6 +98,53 @@ def simular_estrategias(
     }
 
 
+def _selecionar_cards(puts: list, custo: Decimal, cotacao: Decimal) -> list:
+    """Seleciona 3 puts representativos: mínima, custo (break-even) e total (ATM)."""
+    if not puts:
+        return []
+
+    def _mais_proximo(alvo):
+        return min(puts, key=lambda p: abs(p['strike_brl'] - alvo))
+
+    card_minima = _mais_proximo(custo * Decimal('0.90'))
+    card_custo  = _mais_proximo(custo)
+    card_total  = _mais_proximo(cotacao)
+
+    return [
+        {'nome': 'Proteção Mínima',   'destaque': False, **card_minima},
+        {'nome': 'Proteção do Custo', 'destaque': True,  **card_custo},
+        {'nome': 'Proteção Total',    'destaque': False, **card_total},
+    ]
+
+
+def black_scholes_delta_put(
+    S: Decimal, K: Decimal, T_anos: Decimal,
+    r: float = 0.105, sigma: float = 0.35
+) -> float:
+    """Delta do put: entre -1.0 e 0.0. Negativo indica queda de preço beneficia o put."""
+    S_f, K_f, T_f = float(S), float(K), float(T_anos)
+    if T_f <= 0 or sigma <= 0 or S_f <= 0 or K_f <= 0:
+        return -1.0 if K_f > S_f else 0.0
+    d1 = (log(S_f / K_f) + (r + 0.5 * sigma ** 2) * T_f) / (sigma * sqrt(T_f))
+    return round(_norm_cdf(d1) - 1.0, 4)
+
+
+def black_scholes_theta_put_dia(
+    S: Decimal, K: Decimal, T_anos: Decimal,
+    r: float = 0.105, sigma: float = 0.35
+) -> float:
+    """Theta diário do put em R$/saca. Negativo = o put perde valor a cada dia."""
+    from math import pi
+    S_f, K_f, T_f = float(S), float(K), float(T_anos)
+    if T_f <= 0 or sigma <= 0 or S_f <= 0 or K_f <= 0:
+        return 0.0
+    d1 = (log(S_f / K_f) + (r + 0.5 * sigma ** 2) * T_f) / (sigma * sqrt(T_f))
+    d2 = d1 - sigma * sqrt(T_f)
+    n_d1 = exp(-d1 * d1 / 2) / sqrt(2 * pi)
+    theta_anual = -S_f * n_d1 * sigma / (2 * sqrt(T_f)) + r * K_f * exp(-r * T_f) * _norm_cdf(-d2)
+    return round(theta_anual / 365, 4)
+
+
 def simular_cenarios(
     preco_atual: Decimal,
     sacas_a_vender: Decimal = Decimal("1"),
